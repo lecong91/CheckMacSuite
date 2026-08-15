@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Check Mac Suite Pro | Chẩn đoán Sức khỏe SSD & S.M.A.R.T MacBook Chuyên sâu</title>
+  <meta name="description" content="Nền tảng kiểm tra chi tiết thông tin MacBook, phân tích chuyên sâu chỉ số S.M.A.R.T, dự đoán tuổi thọ SSD (TBW), cảnh báo sớm nguy cơ hỏng hóc chuẩn Check Mac.">
+  
+  <!-- CSS Stylesheets -->
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+
+  <!-- ==========================================================================
+       APP HEADER & MACOS TITLE BAR
+       ========================================================================== -->
+  <header class="app-header">
+    <div class="title-bar-container">
+      <div class="brand-section">
+        <div class="mac-traffic-lights" aria-hidden="true">
+          <div class="traffic-dot close"></div>
+          <div class="traffic-dot minimize"></div>
+          <div class="traffic-dot zoom"></div>
+        </div>
+        <div class="brand-title-wrap">
+          <div class="app-icon"></div>
+          <h1 class="app-title">
+            Check Mac <span style="font-weight: 400; opacity: 0.85;">Suite Pro</span>
+            <span id="nativeEngineBadge" class="engine-badge" style="display: none;"></span>
+          </h1>
+        </div>
+      </div>
+
+      <div class="header-controls">
+        <!-- Drive Preset Selector -->
+        <div class="drive-select-box">
+          <label for="drivePresetSelect">Thiết bị / Ổ đĩa:</label>
+          <select id="drivePresetSelect" class="drive-dropdown">
+            <option value="macbook-neo-a18">MacBook Neo 13" (Apple A18 Pro, 2026) - 256GB [100% Good]</option>
+            <option value="macbook-m3-max">MacBook Pro 16" (M3 Max) - 1TB NVMe [100% Good]</option>
+            <option value="macbook-m2-air">MacBook Air 13" (M2) - 512GB [88% Good]</option>
+            <option value="macbook-m1-warning">MacBook Pro 13" (M1) - 256GB [56% Warning]</option>
+            <option value="macbook-intel-failing">MacBook Pro 15" (Intel) - 1TB [18% CRITICAL FAILING]</option>
+            <option value="thunderbolt-nvme-hot">Samsung 990 Pro 2TB (Thunderbolt 4) [74°C Hot]</option>
+            <option value="live-web-drive">⚡ Quét thiết bị trực tiếp từ Trình duyệt</option>
+          </select>
+        </div>
+
+        <!-- Theme Toggle -->
+        <button id="themeToggleBtn" class="btn btn-icon-only" title="Chuyển đổi Chế độ Sáng / Tối">
+          <span id="themeIcon">🌙</span>
+        </button>
+
+        <!-- Quick Self Test Button -->
+        <button id="runQuickSelfTestBtn" class="btn btn-primary btn-sm">
+          <span>⚡ S.M.A.R.T Short Test</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==========================================================================
+       HERO SYSTEM BANNER
+       ========================================================================== -->
+  <section class="hero-banner">
+    <div class="system-card">
+      <div class="drive-hero-icon-wrap">
+        <span>💾</span>
+        <div id="heroStatusDot" class="hero-status-indicator"></div>
+      </div>
+
+      <div class="hero-info-grid">
+        <div class="hero-title-row">
+          <h2 id="heroDriveName" class="hero-drive-name">APPLE SSD (Đang kiểm tra...)</h2>
+          <span id="heroStatusTag" class="hero-tag badge badge-good">Đang kiểm tra...</span>
+        </div>
+        <div class="hero-details-row">
+          <div class="hero-detail-item">
+            <span>Giao tiếp:</span>
+            <strong id="heroBusType">Apple Fabric NVMe</strong>
+          </div>
+          <div class="hero-detail-item">
+            <span>Dung lượng:</span>
+            <strong id="heroCapacity">-- GB</strong>
+          </div>
+          <div class="hero-detail-item">
+            <span>Nhiệt độ:</span>
+            <strong id="heroTemp">-- °C</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="hero-stats-pills">
+        <div class="stat-pill">
+          <div class="stat-pill-label">Dữ liệu đã ghi</div>
+          <div id="statTBWWritten" class="stat-pill-value">4.85 TB</div>
+        </div>
+        <div class="stat-pill">
+          <div class="stat-pill-label">Định mức chịu tải</div>
+          <div id="statTBWRated" class="stat-pill-value">600 TBW</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================================================
+       NAVIGATION TABS
+       ========================================================================== -->
+  <nav class="nav-container">
+    <div class="tab-nav-bar">
+      <button class="tab-button active" data-tab="tab-overview">
+        <span>📊</span> Tổng quan (Overview)
+      </button>
+      <button class="tab-button" data-tab="tab-smart">
+        <span>🔍</span> Chỉ số S.M.A.R.T
+      </button>
+      <button class="tab-button" data-tab="tab-forecast">
+        <span>🛡️</span> Dự báo Tuổi thọ & Lỗi
+        <span id="tabWarningBadge" class="tab-badge badge-warning" style="display: none;">0</span>
+      </button>
+      <button class="tab-button" data-tab="tab-battery">
+        <span>🔋</span> Giám định Kích Pin
+      </button>
+      <button class="tab-button" data-tab="tab-components">
+        <span></span> Giám định Linh kiện
+      </button>
+      <button class="tab-button" data-tab="tab-display">
+        <span>🖥️</span> Kiểm định Màn hình
+      </button>
+      <button class="tab-button" data-tab="tab-surface">
+        <span>🧱</span> Quét Bề mặt Đĩa (Surface Scan)
+      </button>
+      <button class="tab-button" data-tab="tab-benchmark">
+        <span>⚡</span> Đo Tốc độ SSD (Benchmark)
+      </button>
+      <button class="tab-button" data-tab="tab-specs">
+        <span>💻</span> Thông số MacBook
+      </button>
+      <button class="tab-button" data-tab="tab-terminal">
+        <span>📟</span> Nhập Log Terminal Mac
+      </button>
+      <button class="tab-button" data-tab="tab-export">
+        <span>📑</span> Xuất Báo cáo (Report)
+      </button>
+    </div>
+  </nav>
+
+  <!-- ==========================================================================
+       MAIN CONTENT CONTAINER
+       ========================================================================== -->
+  <main class="main-content">
+
+    <!-- ==================== TAB 1: OVERVIEW ==================== -->
+    <section id="tab-overview" class="tab-panel active">
+      <div class="grid-left-heavy">
+        
+        <!-- Left Column: Radial Health & Performance Gauges -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title"><span>🩺</span> Đánh giá Sức khỏe & Hiệu năng SSD</h3>
+          </div>
+
+          <div class="gauge-cluster">
+            <!-- Health Rating Gauge -->
+            <div class="radial-gauge-card">
+              <div class="gauge-svg-wrap">
+                <svg class="gauge-svg" viewBox="0 0 140 140">
+                  <circle class="gauge-bg-circle" cx="70" cy="70" r="60"></circle>
+                  <circle id="healthGaugeCircle" class="gauge-progress-circle status-good-color" cx="70" cy="70" r="60"></circle>
+                </svg>
+                <div class="gauge-inner-content">
+                  <span id="healthGaugeValue" class="gauge-value">100</span>
+                  <span class="gauge-unit">%</span>
+                  <span id="healthGaugeStatus" class="gauge-status-tag badge badge-good">100%</span>
+                </div>
+              </div>
+              <div class="gauge-label">Health Rating</div>
+            </div>
+
+            <!-- Performance Rating Gauge -->
+            <div class="radial-gauge-card">
+              <div class="gauge-svg-wrap">
+                <svg class="gauge-svg" viewBox="0 0 140 140">
+                  <circle class="gauge-bg-circle" cx="70" cy="70" r="60"></circle>
+                  <circle id="perfGaugeCircle" class="gauge-progress-circle status-good-color" cx="70" cy="70" r="60"></circle>
+                </svg>
+                <div class="gauge-inner-content">
+                  <span id="perfGaugeValue" class="gauge-value">100</span>
+                  <span class="gauge-unit">%</span>
+                  <span id="perfGaugeStatus" class="gauge-status-tag badge badge-good">100%</span>
+                </div>
+              </div>
+              <div class="gauge-label">Performance Rating</div>
+            </div>
+          </div>
+
+          <hr style="border: 0; border-top: 1px solid var(--border-subtle); margin: 20px 0;">
+
+          <!-- SSD Wear & Life Indicator -->
+          <div class="linear-progress-wrap">
+            <div class="progress-header">
+              <span>Độ hao mòn chip nhớ (SSD Wear Level):</span>
+              <strong id="wearProgressVal">1%</strong>
+            </div>
+            <div class="progress-bar-track">
+              <div id="wearProgressFill" class="progress-bar-fill fill-good" style="width: 1%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Quick Diagnostics & Metrics Summary -->
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+          
+          <!-- Key Metrics Grid -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title"><span>📈</span> Chỉ số Hoạt động Cốt lõi (Core Telemetry)</h3>
+              <span class="card-subtitle">Cập nhật tự động theo thời gian thực</span>
+            </div>
+
+            <div class="grid-4col">
+              <div class="benchmark-card">
+                <div class="benchmark-card-title">Tốc độ ghi trung bình</div>
+                <div id="statDailyWrite" class="benchmark-card-num" style="font-size: 1.3rem;">7.5 GB/ngày</div>
+                <div class="benchmark-card-unit">Tốc độ tải dữ liệu</div>
+              </div>
+
+              <div class="benchmark-card">
+                <div class="benchmark-card-title">Thời gian hoạt động</div>
+                <div id="statPowerHours" class="benchmark-card-num" style="font-size: 1.3rem;">642 giờ</div>
+                <div class="benchmark-card-unit">Power On Hours</div>
+              </div>
+
+              <div class="benchmark-card">
+                <div class="benchmark-card-title">Mất nguồn đột ngột</div>
+                <div id="statUnsafeShutdowns" class="benchmark-card-num" style="font-size: 1.3rem;">0 lần</div>
+                <div class="benchmark-card-unit">Unsafe Shutdowns</div>
+              </div>
+
+              <div class="benchmark-card">
+                <div class="benchmark-card-title">Lỗi Toàn vẹn (ECC)</div>
+                <div id="statMediaErrors" class="benchmark-card-num" style="font-size: 1.3rem;">0</div>
+                <div class="benchmark-card-unit">Media Errors</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Action & Recommendations Box -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title"><span>💡</span> Trạng thái & Khuyến nghị Kỹ thuật Toàn Diện MacBook</h3>
+                <span class="card-subtitle">Đánh giá tổng hợp 100% cấu phần: SSD, Mạch Pin, Linh kiện sửa chữa, Màn hình & Tản nhiệt</span>
+              </div>
+            </div>
+            <div id="forecastRecommendation">
+              <!-- Dynamically populated by renderComprehensiveRecommendation -->
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 2: SMART INSPECTOR ==================== -->
+    <section id="tab-smart" class="tab-panel">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h3 class="card-title"><span>🔍</span> Bảng Chi tiết Thuộc tính S.M.A.R.T (NVMe & ATA Inspector)</h3>
+            <span class="card-subtitle">Hiển thị toàn bộ giá trị Raw, Normalized, Worst, Ngưỡng Threshold và Mức độ rủi ro</span>
+          </div>
+        </div>
+
+        <!-- Search & Filters Toolbar -->
+        <div class="smart-toolbar">
+          <div class="search-input-wrap">
+            <span class="search-icon">🔎</span>
+            <input type="text" id="smartSearchInput" class="search-input" placeholder="Tìm kiếm thuộc tính SMART (ID, tên, giá trị)...">
+          </div>
+
+          <div class="smart-filter-group">
+            <button class="filter-btn active" data-filter="all">Tất cả</button>
+            <button class="filter-btn" data-filter="critical">Nguy cấp / Pre-fail</button>
+            <button class="filter-btn" data-filter="warning">Cảnh báo</button>
+            <button class="filter-btn" data-filter="realtime">Thời gian thực</button>
+          </div>
+        </div>
+
+        <!-- S.M.A.R.T Table -->
+        <div class="smart-table-wrapper">
+          <table class="smart-table">
+            <thead>
+              <tr>
+                <th style="width: 60px;">ID</th>
+                <th>Tên thuộc tính (Attribute Name)</th>
+                <th style="width: 100px;">Trạng thái</th>
+                <th>Giá trị Raw (Raw Value)</th>
+                <th style="width: 90px;">Normalized</th>
+                <th style="width: 80px;">Worst</th>
+                <th style="width: 80px;">Threshold</th>
+              </tr>
+            </thead>
+            <tbody id="smartTableBody">
+              <!-- Dynamically rendered by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 3: FAILURE PREDICTION & LIFESPAN ==================== -->
+    <section id="tab-forecast" class="tab-panel">
+      <div class="predict-hero">
+        
+        <!-- Lifespan Remaining Card -->
+        <div class="forecast-card">
+          <div class="forecast-header">Dự đoán Thời gian Tuổi thọ còn lại (Endurance Forecast)</div>
+          <div id="forecastYearsVal" class="forecast-date">~9.5 Năm</div>
+          <p class="forecast-desc">
+            Dựa trên chu kỳ ghi dữ liệu thực tế và định mức TBW (Terabytes Written) của chip NAND.
+            Dự kiến ổ cứng sẽ chạm ngưỡng khấu hao vào: <strong id="forecastDateVal" style="color: var(--text-primary);">Tháng 12 năm 2033</strong>.
+          </p>
+        </div>
+
+        <!-- Failure Risk Gauge Card -->
+        <div class="forecast-card">
+          <div class="forecast-header">Mức độ Nguy cơ Hỏng hóc (Failure Probability)</div>
+          <div id="forecastRiskVal" class="forecast-date" style="color: var(--status-good);">None (0.1%)</div>
+          <p class="forecast-desc">
+            Phân tích tự động dựa trên 17 chỉ số S.M.A.R.T quan trọng, tốc độ tụt Available Spare, lỗi Media Integrity Errors và số lần sập nguồn đột ngột.
+          </p>
+        </div>
+      </div>
+
+      <!-- Risk Factors & Early Warnings -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title"><span>⚠️</span> Danh sách Cảnh báo Sớm & Yếu tố Rủi ro (Early Warnings)</h3>
+        </div>
+
+        <div id="failureWarningsList" class="risk-factors-list">
+          <!-- Dynamically injected -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB: BATTERY FORENSICS & KÍCH PIN ==================== -->
+    <section id="tab-battery" class="tab-panel">
+      <!-- Security Verdict Banner -->
+      <div id="batteryVerdictBanner" class="battery-verdict-banner banner-authentic">
+        <div class="verdict-shield-icon" id="batteryShieldIcon">🛡️</div>
+        <div class="verdict-text-wrap">
+          <div id="batteryVerdictTitle" class="verdict-title">ĐANG KIỂM ĐỊNH PIN...</div>
+          <div id="batteryVerdictDesc" class="verdict-desc">Hệ thống đang đối chiếu dữ liệu nạp xả, chu kỳ sạc và thời gian hoạt động của SSD.</div>
+        </div>
+      </div>
+
+      <!-- Cross-Forensic Ratio Cards -->
+      <div class="forensic-correlation-grid">
+        <div class="correlation-card">
+          <div class="correlation-label">Số Chu kỳ sạc (Cycle Count)</div>
+          <div id="battCycleCountVal" class="correlation-val">0</div>
+          <div class="correlation-sub" id="battConditionText">Tình trạng: Normal</div>
+        </div>
+
+        <div class="correlation-card">
+          <div class="correlation-label">Giờ hoạt động SSD (Power On Hours)</div>
+          <div id="battSSDHoursVal" class="correlation-val">0 giờ</div>
+          <div class="correlation-sub" id="battSSDTBWVal">Đã ghi: 0 TBW</div>
+        </div>
+
+        <div class="correlation-card">
+          <div class="correlation-label">Độ lệch Điện áp Cell (Cell Imbalance)</div>
+          <div id="battCellDiffVal" class="correlation-val">0 mV</div>
+          <div class="correlation-sub" id="battCellBalanceStatus">Trạng thái: Hoàn hảo (&lt;5mV)</div>
+        </div>
+      </div>
+
+      <div class="grid-2col">
+        <!-- Individual Cell Voltages & BMS -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title"><span>⚡</span> Điện áp Chi tiết Từng Cell Pin (Cell Telemetry)</h3>
+            <span class="card-subtitle">Phát hiện cell pin chai hoặc tụt áp đột ngột</span>
+          </div>
+
+          <div id="batteryCellGrid" class="cell-meters-grid">
+            <!-- Dynamically injected -->
+          </div>
+
+          <div style="margin-top: 18px;" class="spec-list-grid">
+            <div class="spec-item">
+              <span class="spec-label">Điện áp tổng (Voltage):</span>
+              <span id="battTotalVoltage" class="spec-value">0 mV</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Dòng điện (Amperage):</span>
+              <span id="battAmperage" class="spec-value">0 mA</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Nhiệt độ Pin:</span>
+              <span id="battTemp" class="spec-value">0 °C</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">IC Điều khiển BMS:</span>
+              <span id="battDeviceName" class="spec-value">Apple BMS</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Battery Capacity & Serial Forensics -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title"><span>🔍</span> Đối chiếu Dung lượng & Serial Pin</h3>
+          </div>
+
+          <div class="spec-list-grid">
+            <div class="spec-item">
+              <span class="spec-label">Dung lượng Thiết kế (Design):</span>
+              <span id="battDesignCap" class="spec-value">0 mAh</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Dung lượng Sạc đầy (FCC):</span>
+              <span id="battMaxCap" class="spec-value">0 mAh</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Dung lượng Thô Phần cứng:</span>
+              <span id="battRawMaxCap" class="spec-value">0 mAh</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Độ Chai Pin (Health %):</span>
+              <span id="battHealthPercent" class="spec-value">100%</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Số Serial Pin:</span>
+              <span id="battSerialNum" class="spec-value">D86...</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Nhà sản xuất Cell:</span>
+              <span id="battManufacturer" class="spec-value">SMP/Simplo (Apple)</span>
+            </div>
+          </div>
+
+          <hr style="border: 0; border-top: 1px solid var(--border-subtle); margin: 16px 0;">
+
+          <h4 style="font-size: 0.9rem; font-weight: 700; margin-bottom: 10px;">📋 Kết luận Giám định Forensic:</h4>
+          <div id="batteryEvidenceContainer">
+            <!-- Injected evidence -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB: HARDWARE COMPONENTS AUDIT ==================== -->
+    <section id="tab-components" class="tab-panel">
+      <!-- Overall Verdict Banner -->
+      <div id="auditVerdictBanner" class="audit-banner banner-genuine">
+        <div class="audit-banner-content">
+          <div class="audit-banner-header">
+            <span class="audit-banner-icon"></span>
+            <div>
+              <h3 id="auditVerdictTitle" class="audit-verdict-title">Đang giám định linh kiện...</h3>
+              <p id="auditVerdictDesc" class="audit-verdict-desc">Kiểm tra tính đồng bộ và chứng thực linh kiện chuẩn Apple Genius Bar.</p>
+            </div>
+          </div>
+          <div class="audit-banner-right">
+            <span id="auditVerdictBadge" class="badge badge-good">100% ZIN NGUYÊN BẢN</span>
+            <span class="audit-timestamp" id="auditTimestamp"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Component Cards Grid -->
+      <div class="card" style="margin-top: 20px;">
+        <div class="card-header">
+          <div>
+            <h3 class="card-title"><span>🔬</span> Bảng Giám Định 7 Cụm Linh Kiện Cốt Lõi (Parts & Service History)</h3>
+            <span class="card-subtitle">Đối chiếu Serial, Firmware, Bus Giao tiếp, Mạch BMS và Chipset xuất xưởng Apple</span>
+          </div>
+        </div>
+        <div id="componentsAuditGrid" class="components-grid">
+          <!-- Dynamically populated by componentsAuditController -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB: DISPLAY QUALITY & SCREEN TESTER ==================== -->
+    <section id="tab-display" class="tab-panel">
+      <div class="grid-2col">
+        <!-- Display Specs Card -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title"><span>🖥️</span> Thông Số Kỹ Thuật Màn Hình (Display Panel Specs)</h3>
+              <span class="card-subtitle">Trích xuất trực tiếp từ Apple ColorSync & IOMobileFramebuffer</span>
+            </div>
+            <span id="dispPanelBadge" class="badge badge-good">RETINA DISPLAY</span>
+          </div>
+
+          <div class="specs-table-wrap">
+            <table class="specs-table">
+              <tbody>
+                <tr>
+                  <td>Tên & Kiểu màn hình</td>
+                  <td id="dispPanelName" class="font-mono font-bold">Liquid Retina Display</td>
+                </tr>
+                <tr>
+                  <td>Công nghệ tấm nền</td>
+                  <td id="dispPanelType">Liquid Retina (IPS LED, True Tone)</td>
+                </tr>
+                <tr>
+                  <td>Độ phân giải hiển thị</td>
+                  <td id="dispResolution" class="font-mono font-bold">2560 x 1664 @ 60Hz</td>
+                </tr>
+                <tr>
+                  <td>Ma trận điểm ảnh gốc (Native)</td>
+                  <td id="dispNativePixels" class="font-mono">2560 x 1664</td>
+                </tr>
+                <tr>
+                  <td>Tần số quét (Refresh Rate)</td>
+                  <td id="dispRefreshRate" class="font-bold text-good">60Hz / ProMotion 120Hz</td>
+                </tr>
+                <tr>
+                  <td>Không gian màu (Color Gamut)</td>
+                  <td id="dispColorGamut">Wide Color (P3-D65), 10-bit Depth</td>
+                </tr>
+                <tr>
+                  <td>Độ sáng tối đa (Brightness)</td>
+                  <td id="dispMaxBrightness" class="font-bold">500 nits (SDR) / 1600 nits (XDR)</td>
+                </tr>
+                <tr>
+                  <td>Cảm biến True Tone & ALS</td>
+                  <td id="dispTrueTone">Hỗ trợ (Đang hoạt động)</td>
+                </tr>
+                <tr>
+                  <td>Night Shift</td>
+                  <td id="dispNightShift">Hỗ trợ</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Display Quality Test Launcher Cards -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title"><span>🧪</span> Bộ Công Cụ Kiểm Tra Màn Hình Toàn Diện (Interactive Screen Tests)</h3>
+              <span class="card-subtitle">Chạy trực tiếp toàn màn hình để phát hiện lỗi vật lý và tấm nền</span>
+            </div>
+          </div>
+
+          <div class="screen-tests-grid">
+            <div class="screen-test-item" onclick="window.displayTesterInstance.launchTest('dead-pixel')">
+              <div class="test-icon">🔴</div>
+              <div class="test-info">
+                <div class="test-title">Kiểm tra Điểm Chết (Dead / Stuck Pixels)</div>
+                <div class="test-desc">Chuyển đổi 5 màu chuẩn Đỏ, Xanh lá, Xanh dương, Trắng, Đen toàn màn hình.</div>
+              </div>
+              <button class="btn btn-outline btn-sm">Bắt đầu Test ↗</button>
+            </div>
+
+            <div class="screen-test-item" onclick="window.displayTesterInstance.launchTest('backlight-bleed')">
+              <div class="test-icon">🌑</div>
+              <div class="test-info">
+                <div class="test-title">Hở Sáng Viền & Blooming (Backlight Bleed)</div>
+                <div class="test-desc">Nền đen sâu kiểm tra rò rỉ ánh sáng viền IPS hoặc quầng sáng Mini-LED.</div>
+              </div>
+              <button class="btn btn-outline btn-sm">Bắt đầu Test ↗</button>
+            </div>
+
+            <div class="screen-test-item" onclick="window.displayTesterInstance.launchTest('color-banding')">
+              <div class="test-icon">🌈</div>
+              <div class="test-info">
+                <div class="test-title">Độ Mượt Dải Màu & 256 Mức Xám (Color Banding)</div>
+                <div class="test-desc">Kiểm tra độ suy giảm tấm nền, độ chuyển sắc 10-bit P3 và dải tương phản.</div>
+              </div>
+              <button class="btn btn-outline btn-sm">Bắt đầu Test ↗</button>
+            </div>
+
+            <div class="screen-test-item" onclick="window.displayTesterInstance.launchTest('text-crispness')">
+              <div class="test-icon">🔤</div>
+              <div class="test-info">
+                <div class="test-title">Độ Nét Phông Chữ & Subpixel (Text Crispness)</div>
+                <div class="test-desc">Ma trận phông chữ siêu nhỏ Retina kiểm tra độ sắc nét và tỷ lệ pixel scaling.</div>
+              </div>
+              <button class="btn btn-outline btn-sm">Bắt đầu Test ↗</button>
+            </div>
+
+            <div class="screen-test-item" onclick="window.displayTesterInstance.launchTest('motion-ghosting')">
+              <div class="test-icon">⚡</div>
+              <div class="test-info">
+                <div class="test-title">Bóng Ma & Tốc Độ Đáp Ứng (Motion Ghosting)</div>
+                <div class="test-desc">Kiểm tra thời gian đáp ứng tấm nền và độ mượt ProMotion 120Hz thời gian thực.</div>
+              </div>
+              <button class="btn btn-outline btn-sm">Bắt đầu Test ↗</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB: SURFACE SCANNER ==================== -->
+    <section id="tab-surface" class="tab-panel">
+      <div class="card surface-scan-container">
+        <div class="card-header">
+          <div>
+            <h3 class="card-title"><span>🧱</span> Quét Bề mặt Đĩa Chuyên sâu (Check Mac Disk Surface Scanner)</h3>
+            <span class="card-subtitle">Mô phỏng bản đồ lưới từng block bộ nhớ 60fps, phát hiện bad sectors và ô nhớ phản hồi chậm</span>
+          </div>
+        </div>
+
+        <!-- Scanner Controls & Metrics -->
+        <div class="scanner-controls-bar">
+          <div class="scanner-btn-group">
+            <button id="startScanBtn" class="btn btn-primary">
+              <span>▶ Bắt đầu Quét (Start Scan)</span>
+            </button>
+            <button id="pauseScanBtn" class="btn">
+              <span>⏸ Tạm dừng</span>
+            </button>
+            <button id="stopScanBtn" class="btn">
+              <span>⏹ Đặt lại</span>
+            </button>
+          </div>
+
+          <div class="scanner-metrics-group">
+            <div class="scanner-metric-item">
+              <span class="scanner-metric-label">Tiến độ</span>
+              <span id="scanProgressPercent" class="scanner-metric-value">0%</span>
+            </div>
+            <div class="scanner-metric-item">
+              <span class="scanner-metric-label">Blocks</span>
+              <span id="scanProgressBlocks" class="scanner-metric-value">0 / 1200</span>
+            </div>
+            <div class="scanner-metric-item">
+              <span class="scanner-metric-label">Tốc độ đọc</span>
+              <span id="scanSpeedVal" class="scanner-metric-value">0 MB/s</span>
+            </div>
+            <div class="scanner-metric-item">
+              <span class="scanner-metric-label">Thời gian</span>
+              <span id="scanTimeElapsed" class="scanner-metric-value">00:00</span>
+            </div>
+            <div class="scanner-metric-item">
+              <span class="scanner-metric-label">Bad Blocks / Lỗi</span>
+              <span id="scanBadBlocksCount" class="scanner-metric-value" style="color: var(--status-good);">0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2D Canvas Disk Grid -->
+        <div class="block-canvas-wrap">
+          <canvas id="surfaceBlockCanvas"></canvas>
+        </div>
+
+        <!-- Latency Legend -->
+        <div class="scanner-legend">
+          <div class="legend-item">
+            <div class="legend-dot empty"></div>
+            <span>Chưa quét (Unscanned)</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot good"></div>
+            <span>Rất nhanh (&lt;5ms)</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot normal"></div>
+            <span>Bình thường (5-50ms)</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot slow"></div>
+            <span>Phản hồi chậm (&gt;150ms)</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot damaged"></div>
+            <span>Có dấu hiệu hỏng (Damaged)</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot error"></div>
+            <span>Bad Sector / Lỗi (Error)</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 5: SPEED BENCHMARK ==================== -->
+    <section id="tab-benchmark" class="tab-panel">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h3 class="card-title"><span>⚡</span> Đo Tốc độ Đọc/Ghi Thực tế & IOPS (SSD Performance Benchmark)</h3>
+            <span class="card-subtitle">Kiểm tra thông lượng I/O, độ trễ truy xuất và đo lường hiện tượng quá nhiệt</span>
+          </div>
+          <button id="startBenchmarkBtn" class="btn btn-primary">
+            <span>Bắt đầu Đo tốc độ (Run Benchmark)</span>
+          </button>
+        </div>
+
+        <!-- Benchmark Numbers Grid -->
+        <div class="benchmark-results-grid" style="grid-template-columns: repeat(5, 1fr);">
+          <div class="benchmark-card">
+            <div class="benchmark-card-title">Đọc Tuần Tự (Seq Read)</div>
+            <div id="benchSeqRead" class="benchmark-card-num">0</div>
+            <div class="benchmark-card-unit">MB/s</div>
+          </div>
+
+          <div class="benchmark-card">
+            <div class="benchmark-card-title">Ghi Tuần Tự (Seq Write)</div>
+            <div id="benchSeqWrite" class="benchmark-card-num">0</div>
+            <div class="benchmark-card-unit">MB/s</div>
+          </div>
+
+          <div class="benchmark-card">
+            <div class="benchmark-card-title">Random 4K Read</div>
+            <div id="benchRandomReadIOPS" class="benchmark-card-num">0</div>
+            <div class="benchmark-card-unit">IOPS</div>
+          </div>
+
+          <div class="benchmark-card">
+            <div class="benchmark-card-title">Random 4K Write</div>
+            <div id="benchRandomWriteIOPS" class="benchmark-card-num">0</div>
+            <div class="benchmark-card-unit">IOPS</div>
+          </div>
+
+          <div class="benchmark-card">
+            <div class="benchmark-card-title">Độ trễ (Access Latency)</div>
+            <div id="benchLatency" class="benchmark-card-num">0.00 ms</div>
+            <div class="benchmark-card-unit">Milliseconds</div>
+          </div>
+        </div>
+
+        <!-- Live Real-Time Throughput Canvas Chart -->
+        <div class="chart-wrapper">
+          <canvas id="speedChartCanvas"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 6: MAC HARDWARE SPECS ==================== -->
+    <section id="tab-specs" class="tab-panel">
+      <div class="grid-2col">
+        
+        <!-- Mac Hardware Specs -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title"><span>💻</span> Thông số Phần cứng Máy Mac</h3>
+          </div>
+          <div class="spec-list-grid">
+            <div class="spec-item">
+              <span class="spec-label">Model Mac:</span>
+              <span id="specMacModel" class="spec-value">MacBook Pro 16-inch</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Vi xử lý (CPU):</span>
+              <span id="specProcessor" class="spec-value">Apple M3 Max</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Đồ họa (GPU):</span>
+              <span id="specGraphics" class="spec-value">Apple M3 Max 40-Core</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Bộ nhớ RAM:</span>
+              <span id="specMemory" class="spec-value">64 GB Unified</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Hệ điều hành:</span>
+              <span id="specOS" class="spec-value">macOS Sequoia</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Màn hình hiển thị:</span>
+              <span id="specDisplay" class="spec-value">Liquid Retina Display</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Hệ thống Tản nhiệt:</span>
+              <span id="specCooling" class="spec-value">Fanless / Active Cooling</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Tình trạng Pin:</span>
+              <span id="specBatteryHealth" class="spec-value">100% (Normal)</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Số chu kỳ sạc:</span>
+              <span id="specBatteryCycles" class="spec-value">28 Chu kỳ</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Drive Architecture Specs -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title"><span>⚙️</span> Kiến trúc Ổ cứng & Chip NAND</h3>
+          </div>
+          <div class="spec-list-grid">
+            <div class="spec-item">
+              <span class="spec-label">Model Ổ đĩa:</span>
+              <span id="specDriveModel" class="spec-value">APPLE SSD AP1024Z</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Số Serial:</span>
+              <span id="specSerial" class="spec-value">C02G9001MD6R</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Firmware:</span>
+              <span id="specFirmware" class="spec-value">343.100.12</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Form Factor:</span>
+              <span id="specFormFactor" class="spec-value">Apple Integrated NAND BGA</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Chuẩn kết nối:</span>
+              <span id="specBus" class="spec-value">Apple Fabric NVMe PCIe</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Định dạng ổ đĩa:</span>
+              <span id="specFileSystem" class="spec-value">APFS (Encrypted)</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Lệnh TRIM:</span>
+              <span id="specTrim" class="spec-value">Đã bật (APFS TRIM)</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Kích thước Sector:</span>
+              <span id="specSectorSize" class="spec-value">4096 bytes (4K)</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==================== TAB 7: TERMINAL IMPORT ==================== -->
+    <section id="tab-terminal" class="tab-panel">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h3 class="card-title"><span>📟</span> Nhập & Phân tích Dữ liệu Terminal Thực tế từ MacBook</h3>
+            <span class="card-subtitle">Chạy 1 dòng lệnh đơn giản trên Terminal của máy Mac rồi dán kết quả vào đây để phân tích tức thì</span>
+          </div>
+        </div>
+
+        <!-- 1-Click Terminal Command Helper -->
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">
+          Mở ứng dụng <strong>Terminal</strong> trên máy Mac của bạn, sao chép và chạy một trong các lệnh sau:
+        </p>
+
+        <div class="terminal-box">
+          <code>smartctl -a /dev/disk0</code>
+          <button class="btn btn-sm btn-copy-cmd" data-cmd="smartctl -a /dev/disk0">Sao chép lệnh</button>
+        </div>
+
+        <div class="terminal-box">
+          <code>smartctl --json=c /dev/disk0</code>
+          <button class="btn btn-sm btn-copy-cmd" data-cmd="smartctl --json=c /dev/disk0">Sao chép JSON</button>
+        </div>
+
+        <!-- Drag & Drop Zone -->
+        <div id="logDropZone" style="border: 2px dashed var(--border-medium); border-radius: var(--radius-md); padding: 20px; text-align: center; margin: 16px 0; cursor: pointer; background: var(--bg-tertiary);">
+          <span style="font-size: 2rem;">📁</span>
+          <p style="font-weight: 600; margin-top: 6px;">Kéo thả file log (.txt, .json, .log) hoặc bấm để chọn file</p>
+          <span style="font-size: 0.75rem; color: var(--text-secondary);">Hỗ trợ output smartctl, diskutil, system_profiler, nvme-cli</span>
+          <input type="file" id="logFileInput" accept=".txt,.json,.log" style="display: none;">
+        </div>
+
+        <!-- Textarea input -->
+        <textarea id="terminalLogInput" class="terminal-input-area" placeholder="Hoặc dán toàn bộ đoạn text kết quả Terminal vào đây..."></textarea>
+
+        <div style="margin-top: 14px; display: flex; justify-content: flex-end;">
+          <button id="parseTerminalLogBtn" class="btn btn-primary">
+            <span>🚀 Phân tích Dữ liệu Log MacBook</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 8: EXPORT REPORT ==================== -->
+    <section id="tab-export" class="tab-panel">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h3 class="card-title"><span>📑</span> Xuất Báo cáo Chẩn đoán Chuẩn Kỹ thuật viên Apple (Diagnostic Certificate)</h3>
+            <span class="card-subtitle">In ấn, lưu file PDF hoặc xuất file báo cáo tương thích 100% định dạng Check Mac</span>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px;">
+          <button id="btnPrintCert" class="btn btn-primary">
+            <span>🖨️ In ấn / Lưu Báo cáo PDF</span>
+          </button>
+          <button id="btnExportTxt" class="btn">
+            <span>📄 Tải File Text Check Mac (.txt)</span>
+          </button>
+          <button id="btnExportJson" class="btn">
+            <span>💾 Tải File JSON (.json)</span>
+          </button>
+          <button id="btnCopyReport" class="btn">
+            <span>📋 Sao chép Toàn bộ Báo cáo</span>
+          </button>
+        </div>
+
+        <!-- Printable Diagnostic Certificate Sheet -->
+        <div style="background: var(--bg-tertiary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 24px; font-family: var(--font-family-mono); font-size: 0.84rem; line-height: 1.6; white-space: pre-wrap; overflow-x: auto;">
+================================================================================
+CHECK MAC SUITE PRO - ADVANCED HARDWARE & SMART HEALTH CERTIFICATE
+Authorized Diagnostics & Storage Health Certification
+================================================================================
+Báo cáo đầy đủ chứa tất cả thông số phần cứng, thuộc tính S.M.A.R.T, độ hao mòn chu kỳ ghi,
+nhiệt độ và các cảnh báo nguy cơ hỏng hóc sớm.
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Fullscreen Screen Test Overlay -->
+  <div id="screenTestOverlay" class="screen-test-overlay" style="display: none;">
+    <button class="screen-test-close-btn" onclick="window.displayTesterInstance.closeTest()">✕ Thoát [ESC]</button>
+    <div id="screenTestContent" class="screen-test-content"></div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- App Footer -->
+  <footer class="app-footer">
+    <div class="footer-content">
+      <div>
+        <strong>Check Mac Suite Pro</strong> — Nền tảng chẩn đoán & giám sát phần cứng, S.M.A.R.T SSD và Pin MacBook cao cấp.
+      </div>
+      <div class="footer-links">
+        <span class="footer-link">Chuẩn Check Mac Algorithm</span>
+        <span class="footer-link">Bảo mật 100% Client-Side</span>
+        <span class="footer-link">macOS Sequoia Ready</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="js/presets.js"></script>
+  <script src="js/smart-engine.js"></script>
+  <script src="js/terminal-parser.js"></script>
+  <script src="js/components-audit.js"></script>
+  <script src="js/display-tester.js"></script>
+  <script src="js/surface-scanner.js"></script>
+  <script src="js/speed-benchmark.js"></script>
+  <script src="js/report-generator.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

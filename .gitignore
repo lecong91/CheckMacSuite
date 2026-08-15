@@ -1,0 +1,29 @@
+# macOS System Files
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+
+# Antigravity & IDE
+.codegraph/
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Temporary & Scratch Dumps
+scratch/
+*.tmp
+*.log
