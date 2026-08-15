@@ -80,8 +80,8 @@
 ### 💻 Cách 2: Clone Từ GitHub & Chạy Qua Terminal
 ```bash
 # Clone repository về máy
-git clone https://github.com/your-username/check-mac.git
-cd check-mac
+git clone https://github.com/lecong91/CheckMacSuite.git
+cd CheckMacSuite
 
 # Khởi chạy ứng dụng
 ./CheckMac.command
