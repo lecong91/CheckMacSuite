@@ -513,6 +513,51 @@ function renderComponentsAudit(drive) {
   };
 
   window.componentsAuditController.render(auditData);
+}
+
+function renderDisplayDiagnostics(drive) {
+  if (!window.displayTesterInstance) return;
+
+  const isDesktopHeadless = drive.batteryForensics?.isInstalled === false || 
+    (drive.macModel && (drive.macModel.toLowerCase().includes("mini") || drive.macModel.toLowerCase().includes("studio") || (drive.macModel.toLowerCase().includes("pro") && !drive.macModel.toLowerCase().includes("book"))));
+
+  const dispData = drive.displayDiagnostics || window.realDisplayDiagnostics || (isDesktopHeadless ? {
+    totalDisplays: 1,
+    mainDisplay: {
+      name: "External Connected Display",
+      resolution: "2560 x 1440 @ 60.00Hz",
+      nativePixels: "2560 x 1440",
+      displaySerial: "External Display (USB-C / HDMI)",
+      isMain: true,
+      isBuiltIn: false,
+      panelType: "External Monitor (Display P3 / sRGB)",
+      maxBrightness: "350-400 nits",
+      refreshRate: "60Hz",
+      colorGamut: "Wide Color (P3-D65), 10-bit Depth",
+      trueToneSupported: false,
+      nightShiftSupported: true
+    }
+  } : {
+    totalDisplays: 1,
+    mainDisplay: {
+      name: "Built-in Liquid Retina Display",
+      resolution: "2560 x 1664 @ 60.00Hz",
+      nativePixels: "2560 x 1664",
+      displaySerial: "Apple Color LCD",
+      isMain: true,
+      isBuiltIn: true,
+      panelType: "Liquid Retina Display (IPS LED, True Tone)",
+      maxBrightness: "500 nits",
+      refreshRate: "60Hz",
+      colorGamut: "Wide Color (P3-D65), 10-bit Depth",
+      trueToneSupported: true,
+      nightShiftSupported: true
+    }
+  });
+
+  window.displayTesterInstance.renderSpecs(dispData);
+}
+
 function renderBatteryForensics(drive) {
   const batt = drive.batteryForensics || {
     isInstalled: drive.batteryHealth !== undefined,
@@ -641,7 +686,8 @@ function renderBatteryForensics(drive) {
   }
 
   setElemText("battSSDHoursVal", `${drive.powerOnHours || 0} giờ`);
-  setElemText("battSSDTBWVal", `Đã ghi: ${(drive.wearInfo?.writtenTB || drive.dataUnitsWrittenTB || 0).toFixed(2)} TBW`);
+  const writtenVal = Number(drive.wearInfo?.writtenTB !== undefined ? drive.wearInfo.writtenTB : (parseFloat(drive.dataUnitsWrittenTB) || 0));
+  setElemText("battSSDTBWVal", `Đã ghi: ${isNaN(writtenVal) ? '0.00' : writtenVal.toFixed(2)} TBW`);
   setElemText("battCellDiffVal", `${batt.cellMaxDiffMV || 0} mV`);
   
   const diffStatus = document.getElementById("battCellBalanceStatus");

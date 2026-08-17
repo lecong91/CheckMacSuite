@@ -358,19 +358,47 @@ def run_exhaustive_verification():
         const fs = require('fs');
         const vm = require('vm');
 
+        const elements = {};
+        function getOrCreateElem(id) {
+            if (!elements[id]) {
+                elements[id] = {
+                    id, textContent: '', innerHTML: '', style: {}, className: '', value: '',
+                    children: [], appendChild(c) { this.children.push(c); },
+                    setAttribute(k, v) { this[k] = v; }, getAttribute(k) { return this[k] || ''; },
+                    classList: { add() {}, remove() {} }, addEventListener() {},
+                    getBoundingClientRect: () => ({ width: 800, height: 400 }),
+                    getContext: () => ({ fillRect() {}, clearRect() {}, beginPath() {}, arc() {}, fill() {}, stroke() {}, scale() {}, fillText() {}, moveTo() {}, lineTo() {} })
+                };
+            }
+            return elements[id];
+        }
+
         const sandbox = {
             window: {},
             document: {
-                getElementById: () => ({ textContent: '', style: {}, className: '', appendChild: () => {}, innerHTML: '', getBoundingClientRect: () => ({ width: 800, height: 400 }) }),
+                getElementById: (id) => getOrCreateElem(id),
                 querySelectorAll: () => [],
-                createElement: () => ({ innerHTML: '', style: {}, setAttribute: () => {}, appendChild: () => {} }),
-                addEventListener: () => {}
+                createElement: () => getOrCreateElem('elem_' + Math.random()),
+                addEventListener: () => {},
+                documentElement: { setAttribute() {}, getAttribute() { return 'dark'; } }
             },
             navigator: { userAgent: 'Macintosh', storage: { estimate: async () => ({ quota: 512000000000, usage: 50000000000 }) } },
             localStorage: { getItem: () => 'dark', setItem: () => {} },
             performance: { now: () => 1000 },
             requestAnimationFrame: () => 1,
             cancelAnimationFrame: () => {},
+            setTimeout: (fn) => { fn(); return 1; },
+            clearTimeout: () => {},
+            fetch: async (url) => {
+                if (url === '/api/status') return { ok: true, json: async () => ({ status: 'online' }) };
+                if (url === '/api/system-info') return { ok: true, json: async () => ({ macModel: 'Mac mini (Mac16,10)', processor: 'Apple M4', memory: '16 GB', osVersion: 'macOS 26.6.1' }) };
+                if (url === '/api/drives') return { ok: true, json: async () => [{ diskId: 'disk0', name: 'APPLE SSD AP0256Z', size: '251.0 GB', busProtocol: 'Apple Fabric', isInternal: true }] };
+                if (url === '/api/smart/disk0') return { ok: true, json: async () => ({ success: true, format: 'json', rawJson: { nvme_smart_health_information_log: { temperature: 35, available_spare: 100, percentage_used: 0, data_units_written: 13000000, data_units_read: 28000000 } } }) };
+                if (url === '/api/battery-forensics') return { ok: true, json: async () => ({ isInstalled: false, classification: 'DESKTOP_NO_BATTERY', tamperingStatus: 'DESKTOP_NO_BATTERY' }) };
+                if (url === '/api/hardware-components-audit') return { ok: true, json: async () => ({ overallVerdict: '100% ZIN NGUYÊN BẢN', components: [] }) };
+                if (url === '/api/display-diagnostics') return { ok: true, json: async () => ({ mainDisplay: { name: 'Mi Monitor', resolution: '2560 x 1440 @ 60Hz', panelType: 'External Monitor' } }) };
+                return { ok: false };
+            },
             console: console
         };
         sandbox.window = sandbox;
@@ -383,7 +411,8 @@ def run_exhaustive_verification():
             'js/display-tester.js',
             'js/surface-scanner.js',
             'js/speed-benchmark.js',
-            'js/report-generator.js'
+            'js/report-generator.js',
+            'js/app.js'
         ];
         for (const f of jsFiles) {
             const code = fs.readFileSync(f, 'utf8');
@@ -422,6 +451,13 @@ def run_exhaustive_verification():
         if (typeof evaluatedSata.wearInfo.percentageUsed !== 'number') throw new Error('percentageUsed must be a number');
         if (typeof evaluatedSata.wearInfo.lifeRemaining !== 'number') throw new Error('lifeRemaining must be a number');
         console.log('Tested SATA SSD SMART parser & High-Precision Decimal Engine: % Used = ' + evaluatedSata.wearInfo.percentageUsed.toFixed(2) + '%, Life Remaining = ' + evaluatedSata.wearInfo.lifeRemaining.toFixed(2) + '%, Ratio = ' + evaluatedSata.wearInfo.readWriteRatio + 'x. (100% Precision)');
+
+        // Test Live UI Initialization & Zero-Stuck-Loading verification
+        sandbox.initApp().then(() => {
+            if (elements['heroDriveName'] && elements['heroDriveName'].textContent.includes('Đang kiểm tra')) {
+                throw new Error('heroDriveName stuck on loading');
+            }
+        });
         """
         res = subprocess.run(["node", "-e", node_script], capture_output=True, text=True, cwd=BASE_DIR)
         assert res.returncode == 0, f"Lỗi JavaScript node test: {res.stderr}"
