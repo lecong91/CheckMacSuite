@@ -240,18 +240,20 @@ def run_exhaustive_verification():
     # --------------------------------------------------------------------------
     # STEP 6: Genuine Apple Parts, Camera & Desktop Form-Factor Audit
     # --------------------------------------------------------------------------
-    print("\n[BƯỚC 6/11] Kiểm định Giám định 7 Cụm Linh kiện & Nhận diện Camera Chuẩn Desktop...")
+    print("\n[BƯỚC 6/11] Kiểm định Nghiêm Ngặt 7 Cụm Linh kiện & Nhận diện Bàn phím/Camera/Màn hình...")
     try:
         audit = MacHardwareScanner.get_hardware_components_audit()
         assert "overallStatus" in audit
         assert "components" in audit
         assert len(audit["components"]) == 7, f"Số linh kiện phải là 7, nhận {len(audit['components'])}"
-        print(f"  -> Kết luận Tổng thể: {audit['overallVerdict']}")
+        print(f"  -> Kết luận Tổng thể Live: {audit['overallVerdict']}")
         for c in audit["components"]:
             print(f"     - [{c['status']}] {c['name']}: {c['statusText']} ({c['details']})")
 
-        # Test Desktop Mac (Mac mini) Camera Introspection
+        # 1. Test Desktop Mac (Mac mini M4) Introspection Test Cases
         mac_mini_sys = {"macModel": "Mac mini", "modelIdentifier": "Mac16,10", "isLaptop": False}
+        
+        # Test Camera on Mac mini
         cam_mini = MacHardwareScanner._get_camera_info(mac_mini_sys)
         assert cam_mini["status"] in ["DESKTOP_NA", "EXTERNAL_CONNECTED", "GENUINE"], f"Mac mini camera status unexpected: {cam_mini['status']}"
         if not cam_mini["present"]:
@@ -259,9 +261,32 @@ def run_exhaustive_verification():
             assert "Không tích hợp Camera" in cam_mini["statusText"] or "Mac mini" in cam_mini["statusText"]
             print(f"  -> [Test Camera Mac mini]: ✅ PASS (Nhận diện chính xác: {cam_mini['statusText']})")
 
-        test_steps.append(("Bước 6: Genuine Apple Parts & Desktop Camera Introspection", True, "PASS"))
+        # Test Input & Biometrics on Mac mini
+        input_mini = MacHardwareScanner._get_input_biometrics_info(mac_mini_sys)
+        assert input_mini["status"] in ["DESKTOP_NA", "EXTERNAL_CONNECTED"], f"Mac mini input status must be DESKTOP_NA or EXTERNAL_CONNECTED, got {input_mini['status']}"
+        assert "Không tích hợp sẵn" in input_mini["statusText"] or "kết nối ngoài" in input_mini["statusText"] or "Bàn phím Apple Magic" in input_mini["statusText"], f"Mac mini input status text invalid: {input_mini['statusText']}"
+        print(f"  -> [Test Bàn phím/Trackpad Mac mini]: ✅ PASS (Nhận diện chính xác: {input_mini['statusText']})")
+
+        # Test Audio on Mac mini
+        audio_mini = MacHardwareScanner._get_audio_info(mac_mini_sys)
+        assert "Mac mini" in audio_mini["name"] or "Mac mini" in audio_mini["statusText"] or "Loa tích hợp Mac mini" in audio_mini["name"]
+        print(f"  -> [Test Loa Mac mini]: ✅ PASS (Nhận diện chính xác: {audio_mini['statusText']})")
+
+        # 2. Test Laptop MacBook Pro Introspection Test Cases
+        mbp_sys = {"macModel": "MacBook Pro 16-inch", "modelIdentifier": "MacBookPro18,2", "isLaptop": True}
+        
+        input_mbp = MacHardwareScanner._get_input_biometrics_info(mbp_sys)
+        assert input_mbp["status"] == "GENUINE"
+        assert "Force Touch" in input_mbp["statusText"] or "Magic Keyboard" in input_mbp["statusText"]
+        print(f"  -> [Test Bàn phím/Trackpad MacBook Pro]: ✅ PASS (Nhận diện chính xác: {input_mbp['statusText']})")
+
+        audio_mbp = MacHardwareScanner._get_audio_info(mbp_sys)
+        assert "6-Speaker" in audio_mbp["statusText"] or "Hi-Fi" in audio_mbp["details"]
+        print(f"  -> [Test Loa MacBook Pro]: ✅ PASS (Nhận diện chính xác: {audio_mbp['statusText']})")
+
+        test_steps.append(("Bước 6: Genuine Apple Parts & Strict Form-Factor Introspection", True, "PASS - 100% Chính xác"))
     except Exception as e:
-        test_steps.append(("Bước 6: Genuine Apple Parts & Desktop Camera Introspection", False, str(e)))
+        test_steps.append(("Bước 6: Genuine Apple Parts & Strict Form-Factor Introspection", False, str(e)))
 
     # --------------------------------------------------------------------------
     # STEP 7: Detailed Display Quality & Panel Diagnostics

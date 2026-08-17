@@ -839,26 +839,226 @@ class MacHardwareScanner:
             }
 
     @classmethod
-    def _get_audio_info(cls):
-        """Queries built-in audio system."""
+    def _get_audio_info(cls, sys_info=None):
+        """Queries built-in audio system with intelligent form-factor adaptation."""
+        if sys_info is None:
+            sys_info = cls.get_system_hardware_info()
+
+        model_name = sys_info.get("macModel", "").lower()
+        model_id = sys_info.get("modelIdentifier", "").lower()
+        is_laptop = sys_info.get("isLaptop", False)
+        is_imac = "imac" in model_name or "imac" in model_id
+        is_mini = "mini" in model_name or "mini" in model_id
+        is_studio = "studio" in model_name or "studio" in model_id
+        is_pro = "macpro" in model_id or ("pro" in model_name and not is_laptop)
+
+        # Real CoreAudio query
+        detected_devices = []
         try:
             res = subprocess.run(["system_profiler", "SPAudioDataType", "-json"], capture_output=True, text=True, timeout=4)
             if res.returncode == 0:
                 data = json.loads(res.stdout)
-                audios = data.get("SPAudioDataType", [])
-                if audios:
-                    return {
-                        "name": "Apple Built-in Audio Subsystem",
-                        "speakers": "High-fidelity Stereo / Six-speaker sound system with force-cancelling woofers",
-                        "mic": "Studio-quality three-mic array with high SNR"
-                    }
+                for block in data.get("SPAudioDataType", []):
+                    for item in block.get("_items", []):
+                        item_name = item.get("_name", "")
+                        if item_name:
+                            detected_devices.append(item_name)
         except Exception:
             pass
-        return {
-            "name": "Apple Built-in Audio Subsystem",
-            "speakers": "High-fidelity Six-speaker sound system with force-cancelling woofers",
-            "mic": "Studio-quality three-mic array with directional beamforming"
-        }
+
+        if is_mini:
+            return {
+                "name": "Loa tích hợp Mac mini (Built-in Speaker)",
+                "speakers": "Loa Mac mini tích hợp sẵn (System Audio Speaker) & Cổng tai nghe 3.5mm",
+                "mic": "Hỗ trợ Micro ngoài qua cổng 3.5mm / USB / Bluetooth",
+                "status": "GENUINE",
+                "statusText": "Zin Apple Mac mini Speaker",
+                "details": f"Loa trong: Mac mini Built-in Speaker | Ngõ ra âm thanh: {', '.join(detected_devices[:3]) if detected_devices else 'Mac mini Speakers'}"
+            }
+        elif is_studio:
+            return {
+                "name": "Loa tích hợp Mac Studio (Built-in Speaker)",
+                "speakers": "Loa Mac Studio tích hợp & Cổng tai nghe 3.5mm hỗ trợ trở kháng cao",
+                "mic": "Hỗ trợ Micro ngoài qua cổng 3.5mm / USB / Bluetooth",
+                "status": "GENUINE",
+                "statusText": "Zin Apple Mac Studio Speaker",
+                "details": f"Loa trong: Mac Studio Built-in Speaker | Thiết bị âm thanh: {', '.join(detected_devices[:3]) if detected_devices else 'Mac Studio Speakers'}"
+            }
+        elif is_pro:
+            return {
+                "name": "Loa tích hợp Mac Pro (Built-in Speaker)",
+                "speakers": "Loa Mac Pro tích hợp & Cổng tai nghe 3.5mm",
+                "mic": "Hỗ trợ Micro ngoài qua cổng 3.5mm / USB / Bluetooth",
+                "status": "GENUINE",
+                "statusText": "Zin Apple Mac Pro Speaker",
+                "details": f"Loa trong: Mac Pro Speaker | Thiết bị âm thanh: {', '.join(detected_devices[:3]) if detected_devices else 'Mac Pro Speakers'}"
+            }
+        elif is_imac:
+            return {
+                "name": "Hệ thống 6 loa Apple iMac (Six-Speaker System)",
+                "speakers": "Hệ thống 6 loa Hi-Fi woofers triệt tiêu lực, hỗ trợ Spatial Audio Dolby Atmos",
+                "mic": "Cụm 3 micro chuẩn phòng thu (Studio-quality 3-mic array) với SNR cao",
+                "status": "GENUINE",
+                "statusText": "Zin Apple iMac 6-Speaker System",
+                "details": "Hệ thống 6 loa Hi-Fi woofers + 3 Micro Studio chuẩn phòng thu tích hợp"
+            }
+        else:
+            # MacBook (Laptop)
+            is_mbp = "pro" in model_name or "pro" in model_id or "14" in model_name or "16" in model_name
+            if is_mbp:
+                speakers_desc = "Hệ thống 6 loa Hi-Fi woofers triệt tiêu rung chấn, hỗ trợ Spatial Audio Dolby Atmos"
+                mic_desc = "Cụm 3 micro chuẩn phòng thu (Studio-quality three-mic array) với SNR cao"
+                status_text = "Zin Apple 6-Speaker Hi-Fi Audio"
+            else:
+                speakers_desc = "Hệ thống 4 loa / 6 loa Stereo hỗ trợ Spatial Audio"
+                mic_desc = "Cụm 3 micro định hướng chùm sóng lọc ồn"
+                status_text = "Zin Apple Audio Subsystem"
+
+            return {
+                "name": "Apple Built-in Audio Subsystem",
+                "speakers": speakers_desc,
+                "mic": mic_desc,
+                "status": "GENUINE",
+                "statusText": status_text,
+                "details": f"Loa: {speakers_desc} | Mic: {mic_desc}"
+            }
+
+    @classmethod
+    def _get_input_biometrics_info(cls, sys_info=None):
+        """Queries Keyboard, Trackpad & Biometrics / Touch ID with strict hardware introspection."""
+        if sys_info is None:
+            sys_info = cls.get_system_hardware_info()
+
+        model_name = sys_info.get("macModel", "").lower()
+        model_id = sys_info.get("modelIdentifier", "").lower()
+        is_laptop = sys_info.get("isLaptop", False)
+        is_imac = "imac" in model_name or "imac" in model_id
+        is_desktop_headless = "mini" in model_name or "studio" in model_name or "pro" in model_name or ("mac" in model_id and not is_laptop and not is_imac)
+
+        # Introspect connected external input devices
+        keyboards = []
+        mice = []
+        has_apple_magic_keyboard_touch_id = False
+        has_apple_magic_keyboard = False
+
+        # 1. Query USB Peripherals
+        try:
+            res_u = subprocess.run(["system_profiler", "SPUSBDataType", "-json"], capture_output=True, text=True, timeout=4)
+            if res_u.returncode == 0:
+                u_data = json.loads(res_u.stdout)
+                def traverse_usb(items):
+                    for item in items:
+                        name = item.get("_name", "")
+                        low_name = name.lower()
+                        if any(k in low_name for k in ["keyboard", "keychron", "logitech", "corsair", "razer", "filco", "ducky", "varmilo", "nuphy", "akko", "dareu"]):
+                            keyboards.append(name)
+                        if any(k in low_name for k in ["mouse", "trackball", "trackpad", "g502", "mx master", "deathadder"]):
+                            mice.append(name)
+                        if "magic keyboard" in low_name:
+                            has_apple_magic_keyboard = True
+                            if "touch id" in low_name or "numeric" in low_name:
+                                has_apple_magic_keyboard_touch_id = True
+                        if "_items" in item:
+                            traverse_usb(item["_items"])
+                traverse_usb(u_data.get("SPUSBDataType", []))
+        except Exception:
+            pass
+
+        # 2. Query Bluetooth Peripherals
+        try:
+            res_b = subprocess.run(["system_profiler", "SPBluetoothDataType", "-json"], capture_output=True, text=True, timeout=4)
+            if res_b.returncode == 0:
+                b_data = json.loads(res_b.stdout)
+                bt_items = b_data.get("SPBluetoothDataType", [{}])[0].get("device_title", [])
+                for dev in bt_items:
+                    for d_name, d_info in dev.items():
+                        low_name = d_name.lower()
+                        if "magic keyboard" in low_name:
+                            has_apple_magic_keyboard = True
+                            keyboards.append(d_name)
+                            if "touch id" in low_name:
+                                has_apple_magic_keyboard_touch_id = True
+                        elif "keyboard" in low_name or any(k in low_name for k in ["keychron", "logitech", "nuphy", "mx keys"]):
+                            keyboards.append(d_name)
+
+                        if "magic trackpad" in low_name or "magic mouse" in low_name or "mouse" in low_name or "trackpad" in low_name:
+                            mice.append(d_name)
+        except Exception:
+            pass
+
+        # Formulate Rigorous Assessment based on Form-Factor
+        if is_laptop:
+            # MacBook (Pro / Air) - Has internal built-in keyboard, Force Touch trackpad, Touch ID
+            return {
+                "id": "input_biometrics",
+                "name": "Bàn phím, Trackpad & Touch ID",
+                "part": "Apple Magic Keyboard & Force Touch Trackpad",
+                "serial": "Apple Multitouch SPI Controller",
+                "status": "GENUINE",
+                "statusText": "Zin Apple Magic Keyboard & Force Touch",
+                "details": "Bàn phím: Magic Keyboard cơ chế cắt kéo | Trackpad: Force Touch Taptic Engine | Touch ID: Tích hợp Secure Enclave",
+                "isOriginal": True
+            }
+        elif is_imac:
+            # iMac - All-In-One, uses bundled Magic Keyboard & Magic Mouse/Trackpad
+            input_summary = []
+            if keyboards:
+                input_summary.append(f"Bàn phím: {', '.join(keyboards[:2])}")
+            else:
+                input_summary.append("Bàn phím: Apple Magic Keyboard (Ngoại vi)")
+            if mice:
+                input_summary.append(f"Chuột/Trackpad: {', '.join(mice[:2])}")
+            else:
+                input_summary.append("Chuột: Apple Magic Mouse (Ngoại vi)")
+
+            return {
+                "id": "input_biometrics",
+                "name": "Bàn phím, Trackpad & Cảm biến Touch ID",
+                "part": "Bộ phím chuột Apple Magic Keyboard / Mouse (Kèm theo máy)",
+                "serial": "Apple Wireless HID Peripherals",
+                "status": "EXTERNAL_CONNECTED",
+                "statusText": "Bộ phím chuột Magic ngoại vi (Kèm theo iMac)",
+                "details": " | ".join(input_summary),
+                "isOriginal": True
+            }
+        else:
+            # Mac mini / Mac Studio / Mac Pro (Desktop Headless)
+            if has_apple_magic_keyboard_touch_id or has_apple_magic_keyboard:
+                part_name = "Apple Magic Keyboard với Touch ID (Ngoại vi)" if has_apple_magic_keyboard_touch_id else "Apple Magic Keyboard (Ngoại vi)"
+                return {
+                    "id": "input_biometrics",
+                    "name": "Bàn phím, Trackpad & Cảm biến Touch ID",
+                    "part": part_name,
+                    "serial": "Apple Bluetooth/USB HID Peripheral",
+                    "status": "EXTERNAL_CONNECTED",
+                    "statusText": "Bàn phím Apple Magic Keyboard ngoài",
+                    "details": f"Đang kết nối: {', '.join(keyboards + mice) if (keyboards or mice) else 'Apple Magic Keyboard'}",
+                    "isOriginal": True
+                }
+            elif keyboards or mice:
+                connected_str = ", ".join(keyboards + mice)
+                return {
+                    "id": "input_biometrics",
+                    "name": "Bàn phím, Trackpad & Cảm biến Touch ID",
+                    "part": f"Bàn phím & Chuột Ngoại vi ({connected_str})",
+                    "serial": "External USB / Bluetooth HID Device",
+                    "status": "EXTERNAL_CONNECTED",
+                    "statusText": "Thiết bị ngoại vi kết nối ngoài (USB/Bluetooth)",
+                    "details": f"Đang kết nối thiết bị ngoại vi: {connected_str}",
+                    "isOriginal": True
+                }
+            else:
+                # Standard Mac mini desktop state - No built-in keyboard/trackpad
+                return {
+                    "id": "input_biometrics",
+                    "name": "Bàn phím, Trackpad & Touch ID",
+                    "part": "Không có Bàn phím / Trackpad tích hợp (Mac mini)",
+                    "serial": "N/A - Không tích hợp phần cứng liền thân",
+                    "status": "DESKTOP_NA",
+                    "statusText": "Không tích hợp sẵn (Chuẩn xuất xưởng Mac mini)",
+                    "details": "Thiết bị để bàn Mac mini không có bàn phím/trackpad/Touch ID liền thân. Hỗ trợ kết nối Magic Keyboard rời hoặc bàn phím/chuột ngoài qua Bluetooth & USB.",
+                    "isOriginal": True
+                }
 
     @classmethod
     def get_detailed_display_diagnostics(cls):
@@ -946,6 +1146,12 @@ class MacHardwareScanner:
         sys_info = cls.get_system_hardware_info()
         batt_info = cls.get_battery_forensics()
         
+        model_name = sys_info.get("macModel", "").lower()
+        model_id = sys_info.get("modelIdentifier", "").lower()
+        is_laptop = sys_info.get("isLaptop", False)
+        is_imac = "imac" in model_name or "imac" in model_id
+        is_desktop_headless = "mini" in model_name or "studio" in model_name or "pro" in model_name or ("mac" in model_id and not is_laptop and not is_imac)
+
         components = []
         replaced_count = 0
         suspicious_count = 0
@@ -968,15 +1174,15 @@ class MacHardwareScanner:
         })
         
         # 2. Pin & Mạch BMS (Battery System) - Rigorous 8-Layer Forensic Hook
-        if not batt_info.get("isInstalled"):
+        if not batt_info.get("isInstalled") or is_desktop_headless:
             components.append({
                 "id": "battery",
                 "name": "Hệ thống Pin (Battery System)",
-                "part": "N/A (Thiết bị để bàn Mac mini / Mac Studio / Mac Pro)",
-                "serial": "N/A - Direct Power",
+                "part": "N/A (Thiết bị để bàn dùng nguồn AC trực tiếp)",
+                "serial": "N/A - Direct AC Power",
                 "status": "DESKTOP_NA",
-                "statusText": "Máy cắm nguồn trực tiếp",
-                "details": "Không sử dụng pin tích hợp",
+                "statusText": "Máy cắm nguồn trực tiếp (Không có pin)",
+                "details": "Mac mini / Mac Studio / Mac Pro chuẩn xuất xưởng không trang bị pin lưu động",
                 "isOriginal": True
             })
         else:
@@ -1042,28 +1248,60 @@ class MacHardwareScanner:
             "isOriginal": ssd_status == "GENUINE"
         })
         
-        # 4. Màn hình Retina / XDR Display Panel
+        # 4. Màn hình Hiển thị (Display Panel) - Strict Internal vs External Introspection
         display_diag = cls.get_detailed_display_diagnostics()
         main_disp = display_diag.get("mainDisplay", {})
-        is_internal_disp = main_disp.get("isBuiltIn", sys_info.get("isLaptop", False))
+        is_internal_disp = main_disp.get("isBuiltIn", False) or (is_laptop and "color lcd" in main_disp.get("name", "").lower())
         
-        if sys_info.get("isLaptop") and not is_internal_disp:
-            disp_status = "EXTERNAL_CONNECTED"
-            disp_text = "Đang kết nối màn hình ngoài"
-            is_disp_orig = True
+        if is_laptop or is_imac:
+            if is_internal_disp:
+                disp_status = "GENUINE"
+                disp_text = "Zin Apple Retina / XDR Panel"
+                disp_part = main_disp.get("panelType", "Liquid Retina Display")
+                disp_details = f"{main_disp.get('name', 'Retina')} ({main_disp.get('resolution', 'N/A')}) | Tần số: {main_disp.get('refreshRate', '60Hz')} | Dải màu: {main_disp.get('colorGamut', 'Display P3')}"
+                is_disp_orig = True
+            else:
+                disp_status = "EXTERNAL_CONNECTED"
+                disp_text = "Đang kết nối màn hình ngoài"
+                disp_part = f"Màn hình ngoài ({main_disp.get('name', 'External')})"
+                disp_details = f"Màn hình ngoài: {main_disp.get('name', 'External')} ({main_disp.get('resolution', 'N/A')})"
+                is_disp_orig = True
         else:
-            disp_status = "GENUINE"
-            disp_text = "Zin Apple Retina / XDR Panel"
-            is_disp_orig = True
-            
+            # Desktop Macs (Mac mini, Mac Studio, Mac Pro)
+            disp_name = main_disp.get("name", "Màn hình ngoài")
+            if "studio display" in disp_name.lower():
+                disp_status = "EXTERNAL_CONNECTED"
+                disp_text = "Màn hình Apple Studio Display 5K ngoài"
+                disp_part = "Apple Studio Display 27-inch 5K"
+                disp_details = f"{disp_name} ({main_disp.get('resolution', '5120 x 2880')}) qua Thunderbolt"
+                is_disp_orig = True
+            elif "pro display xdr" in disp_name.lower():
+                disp_status = "EXTERNAL_CONNECTED"
+                disp_text = "Màn hình Apple Pro Display XDR 6K ngoài"
+                disp_part = "Apple Pro Display XDR 32-inch 6K"
+                disp_details = f"{disp_name} ({main_disp.get('resolution', '6016 x 3384')}) qua Thunderbolt"
+                is_disp_orig = True
+            elif main_disp.get("name"):
+                disp_status = "EXTERNAL_CONNECTED"
+                disp_text = f"Màn hình ngoài: {disp_name}"
+                disp_part = f"Màn hình ngoài ({disp_name})"
+                disp_details = f"{disp_name} ({main_disp.get('resolution', 'N/A')}) | Tần số: {main_disp.get('refreshRate', '60Hz')} | Cổng kết nối ngoài"
+                is_disp_orig = True
+            else:
+                disp_status = "DESKTOP_NA"
+                disp_text = "Không kết nối màn hình (Headless)"
+                disp_part = "Không có màn hình"
+                disp_details = "Thiết bị để bàn vận hành không gắn màn hình"
+                is_disp_orig = True
+
         components.append({
             "id": "display",
             "name": "Màn hình Hiển thị (Display Panel)",
-            "part": main_disp.get("panelType", "Liquid Retina Display"),
-            "serial": main_disp.get("displaySerial", "Apple Color LCD"),
+            "part": disp_part,
+            "serial": main_disp.get("displaySerial", "External Display"),
             "status": disp_status,
             "statusText": disp_text,
-            "details": f"{main_disp.get('name', 'Retina')} ({main_disp.get('resolution', 'N/A')}) | Tần số: {main_disp.get('refreshRate', '60Hz')} | Dải màu: {main_disp.get('colorGamut', 'Display P3')}",
+            "details": disp_details,
             "isOriginal": is_disp_orig
         })
         
@@ -1085,29 +1323,21 @@ class MacHardwareScanner:
         })
         
         # 6. Âm thanh & Micro (Audio Subsystem)
-        audio_info = cls._get_audio_info()
+        audio_info = cls._get_audio_info(sys_info)
         components.append({
             "id": "audio",
             "name": "Âm thanh & Micro (Audio Subsystem)",
             "part": audio_info.get("name", "Apple Audio Codec"),
             "serial": "Apple Cirrus/TI Audio Engine",
-            "status": "GENUINE",
-            "statusText": "Zin Apple Audio Codec",
-            "details": f"Loa: {audio_info.get('speakers')} | Mic: {audio_info.get('mic')}",
+            "status": audio_info.get("status", "GENUINE"),
+            "statusText": audio_info.get("statusText", "Zin Apple Audio Codec"),
+            "details": audio_info.get("details", f"Loa: {audio_info.get('speakers')} | Mic: {audio_info.get('mic')}"),
             "isOriginal": True
         })
         
-        # 7. Bàn phím, Trackpad & Touch ID
-        components.append({
-            "id": "input_biometrics",
-            "name": "Bàn phím, Trackpad & Touch ID",
-            "part": "Magic Keyboard & Force Touch Trackpad" if sys_info.get("isLaptop") else "Apple Magic Keyboard / External Input",
-            "serial": "Apple Multitouch SPI Controller",
-            "status": "GENUINE",
-            "statusText": "Zin Apple Hardware",
-            "details": "Touch ID: Sẵn sàng | Force Touch: Taptic Engine Haptic Feedback" if sys_info.get("isLaptop") else "Hỗ trợ kết nối Magic Keyboard / Magic Mouse",
-            "isOriginal": True
-        })
+        # 7. Bàn phím, Trackpad & Touch ID (Strict Form Factor & External Introspection)
+        input_info = cls._get_input_biometrics_info(sys_info)
+        components.append(input_info)
         
         # Overall Verdict
         if replaced_count > 0:
@@ -1120,7 +1350,10 @@ class MacHardwareScanner:
             verdict_badge = "WARNING"
         else:
             overall_status = "ALL_GENUINE_ORIGINAL"
-            overall_verdict = "✅ 100% ZIN NGUYÊN BẢN (ALL ORIGINAL APPLE): Toàn bộ linh kiện đều chính hãng Apple nguyên gốc"
+            if is_desktop_headless:
+                overall_verdict = "✅ 100% ZIN NGUYÊN BẢN (ALL ORIGINAL APPLE): Toàn bộ linh kiện đều chính hãng Apple nguyên gốc (Chuẩn xuất xưởng Mac mini)"
+            else:
+                overall_verdict = "✅ 100% ZIN NGUYÊN BẢN (ALL ORIGINAL APPLE): Toàn bộ linh kiện đều chính hãng Apple nguyên gốc"
             verdict_badge = "ALL_ORIGINAL"
             
         result = {

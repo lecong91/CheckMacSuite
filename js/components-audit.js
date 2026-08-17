@@ -69,7 +69,7 @@ class ComponentsAuditController {
         statusBadgeClass = "badge-critical";
         statusIcon = "🚨";
         borderColor = "var(--status-critical)";
-      } else if (comp.status === "TAMPERED_FRAUD") {
+      } else if (comp.status === "TAMPERED_FRAUD" || comp.status === "HARDWARE_ERROR") {
         statusBadgeClass = "badge-critical";
         statusIcon = "🚨";
         borderColor = "var(--status-critical)";
@@ -81,9 +81,13 @@ class ComponentsAuditController {
         statusBadgeClass = "badge-warning";
         statusIcon = "⚠️";
         borderColor = "var(--status-warning)";
+      } else if (comp.status === "EXTERNAL_CONNECTED") {
+        statusBadgeClass = "badge-notice";
+        statusIcon = "🔌";
+        borderColor = "var(--accent-blue)";
       } else if (comp.status === "DESKTOP_NA") {
         statusBadgeClass = "badge-notice";
-        statusIcon = "⚡";
+        statusIcon = "🖥️";
         borderColor = "var(--border-subtle)";
       }
 
