@@ -11,6 +11,10 @@ class ReportGenerator {
     if (!drive) return "";
     const dateStr = new Date().toLocaleString("vi-VN");
     
+    const bForensic = drive.batteryForensics;
+    const isDesk = bForensic ? (bForensic.classification === "DESKTOP_NO_BATTERY" || bForensic.tamperingStatus === "DESKTOP_NO_BATTERY" || !bForensic.isInstalled) : (drive.batteryHealth === undefined);
+    const bHealthTxt = isDesk ? "N/A (Thiết bị để bàn dùng nguồn AC trực tiếp)" : `${drive.batteryCondition || 'Normal'} (${(typeof drive.batteryHealth === 'number' ? drive.batteryHealth.toFixed(2) : drive.batteryHealth)}% Health, ${drive.batteryCycleCount || 0}/1000 Cycles)`;
+
     let report = `================================================================================
 CHECK MAC SUITE - ADVANCED DRIVE HEALTH DIAGNOSTIC REPORT
 Generated on: ${dateStr}
@@ -54,7 +58,7 @@ Processor:               ${drive.processor}
 Graphics:                ${drive.graphics}
 Memory:                  ${drive.memory}
 OS Version:              ${drive.osVersion}
-Battery Condition:       ${drive.batteryCondition} (${drive.batteryHealth}% Health, ${drive.batteryCycleCount} Cycles)
+Battery Telemetry:       ${bHealthTxt}
 
 === OVERALL HEALTH & PERFORMANCE ===
 Health Rating:           ${drive.healthScore}% [${drive.status.toUpperCase()}]

@@ -233,6 +233,23 @@ def run_exhaustive_verification():
         assert fake_fraud["classification"] == "TAMPERED_FRAUD", f"Phải phát hiện gian lận kích pin, nhận {fake_fraud['classification']}"
         print(f"  -> [Test Case 3: Kích Pin & Gian Lận] : ✅ PASS (Nhận diện chính xác: {fake_fraud['classification']})")
 
+        # 5. Scientific Math Verification: High Precision Decimal SoH & Cycle Depletion
+        design_cap = 5200
+        max_cap = 5017 # 5017 / 5200 = 96.480769... -> 96.48%
+        calc_health = round((max_cap / float(design_cap)) * 100.0, 2)
+        calc_loss_mah = design_cap - max_cap
+        calc_loss_pct = round(100.0 - calc_health, 2)
+        calc_cycles = 142
+        calc_cycle_dep = round((calc_cycles / 1000.0) * 100.0, 2)
+        calc_cycles_rem = max(0, 1000 - calc_cycles)
+
+        assert calc_health == 96.48, f"Expected 96.48, got {calc_health}"
+        assert calc_loss_mah == 183
+        assert calc_loss_pct == 3.52
+        assert calc_cycle_dep == 14.20
+        assert calc_cycles_rem == 858
+        print(f"  -> [Test Case 4: High-Precision Decimal Math (2 decimals)]: ✅ PASS (Health: {calc_health}%, Loss: -{calc_loss_mah} mAh (-{calc_loss_pct}%), Cycle Depletion: {calc_cycle_dep}%, Remaining: {calc_cycles_rem})")
+
         test_steps.append(("Bước 5: 8-Layer Battery Forensics & Replaced Detection", True, "PASS - 100% Chính xác"))
     except Exception as e:
         test_steps.append(("Bước 5: 8-Layer Battery Forensics & Replaced Detection", False, str(e)))

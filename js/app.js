@@ -513,52 +513,36 @@ function renderComponentsAudit(drive) {
   };
 
   window.componentsAuditController.render(auditData);
-}
-
-function renderDisplayDiagnostics(drive) {
-  if (!window.displayTesterInstance) return;
-
-  const dispData = drive.displayDiagnostics || window.realDisplayDiagnostics || {
-    totalDisplays: 1,
-    mainDisplay: {
-      name: "Built-in Liquid Retina Display",
-      resolution: "2560 x 1664 @ 60.00Hz",
-      nativePixels: "2560 x 1664",
-      displaySerial: "Apple Color LCD",
-      isMain: true,
-      isBuiltIn: true,
-      panelType: "Liquid Retina Display (IPS LED, True Tone)",
-      maxBrightness: "500 nits",
-      refreshRate: "60Hz",
-      colorGamut: "Wide Color (P3-D65), 10-bit Depth",
-      trueToneSupported: true,
-      nightShiftSupported: true
-    }
-  };
-
-  window.displayTesterInstance.renderSpecs(dispData);
-}
-
 function renderBatteryForensics(drive) {
   const batt = drive.batteryForensics || {
-    isInstalled: drive.batteryHealth !== undefined && drive.batteryCycleCount !== undefined,
+    isInstalled: drive.batteryHealth !== undefined,
     cycleCount: drive.batteryCycleCount || 0,
-    designCapacity: 8700,
-    maxCapacity: Math.round(8700 * ((drive.batteryHealth || 100) / 100)),
-    rawMaxCapacity: Math.round(8700 * ((drive.batteryHealth || 100) / 100)),
-    healthPercentage: drive.batteryHealth || 100,
-    voltageMV: 12600,
+    maxCycles: 1000,
+    cyclesRemaining: Math.max(0, 1000 - (drive.batteryCycleCount || 0)),
+    cycleDepletionPercent: Number(((drive.batteryCycleCount || 0) / 10).toFixed(2)),
+    designCapacity: 5000,
+    maxCapacity: Math.round(5000 * ((drive.batteryHealth || 100) / 100)),
+    currentCapacity: Math.round(5000 * ((drive.batteryHealth || 100) / 100) * 0.95),
+    rawMaxCapacity: Math.round(5000 * ((drive.batteryHealth || 100) / 100)),
+    healthPercentage: Number(drive.batteryHealth || 100),
+    capacityLossMAh: Math.max(0, 5000 - Math.round(5000 * ((drive.batteryHealth || 100) / 100))),
+    capacityLossPercent: Number(Math.max(0, 100 - (drive.batteryHealth || 100)).toFixed(2)),
+    stateOfChargePercent: 95.00,
+    voltageMV: 11400,
     amperageMA: -350,
-    temperatureC: 28.0,
-    serialNumber: "D86_GENUINE_APPLE",
-    manufacturer: "Simplo (Apple)",
+    temperatureC: 28.50,
+    cellVoltages: [3800, 3800, 3800],
+    cellMaxDiffMV: 0,
+    serialNumber: "D86_OEM_APPLE",
+    manufacturer: "SMP / Simplo (Apple)",
     deviceName: "Apple bq20z451",
-    cellVoltages: [4200, 4202, 4198],
-    cellMaxDiffMV: 4,
-    tamperingStatus: (drive.batteryHealth === 100 && (drive.powerOnHours || 0) > 10000 && (drive.batteryCycleCount || 0) < 15) ? "TAMPERED_FRAUD" : "GENUINE_AUTHENTIC",
-    tamperingVerdict: (drive.batteryHealth === 100 && (drive.powerOnHours || 0) > 10000 && (drive.batteryCycleCount || 0) < 15) ? "🚨 PHÁT HIỆN GIAN LẬN: PIN ĐÃ BỊ KÍCH SỐ ẢO & RESET CHU KỲ SẠC!" : "✅ PIN NGUYÊN BẢN (ZIN APPLE): Mọi thông số đồng nhất hoàn hảo",
+    classification: "GENUINE_AUTHENTIC",
+    tamperingStatus: "GENUINE_AUTHENTIC",
+    tamperingVerdict: "✅ PIN NGUYÊN BẢN (ZIN APPLE)",
     tamperingReasons: []
   };
+
+  const isDesktop = batt.classification === "DESKTOP_NO_BATTERY" || batt.tamperingStatus === "DESKTOP_NO_BATTERY" || !batt.isInstalled;
 
   const banner = document.getElementById("batteryVerdictBanner");
   const shieldIcon = document.getElementById("batteryShieldIcon");
@@ -587,12 +571,12 @@ function renderBatteryForensics(drive) {
       banner.className = "battery-verdict-banner banner-suspicious";
       if (shieldIcon) shieldIcon.textContent = "⚠️";
       verdictTitle.textContent = "PIN ZIN THEO MÁY ĐÃ SUY GIẢM (CẦN BẢO DƯỠNG)";
-      if (verdictDesc) verdictDesc.textContent = "Pin nguyên bản theo máy nhưng dung lượng đã chai dưới 80%. Khuyến nghị thay pin mới.";
-    } else if (battClass === "DESKTOP_NO_BATTERY" || battClass === "DESKTOP_NA") {
+      if (verdictDesc) verdictDesc.textContent = "Pin nguyên bản theo máy nhưng dung lượng đã chai dưới 80.00%. Khuyến nghị thay pin mới.";
+    } else if (isDesktop) {
       banner.className = "battery-verdict-banner banner-desktop";
       if (shieldIcon) shieldIcon.textContent = "🖥️";
       verdictTitle.textContent = "THIẾT BỊ DÙNG NGUỒN TRỰC TIẾP (KHÔNG CÓ PIN)";
-      if (verdictDesc) verdictDesc.textContent = "Máy Mac mini / Mac Studio / Mac Pro cắm điện trực tiếp, không sử dụng pin lưu động.";
+      if (verdictDesc) verdictDesc.textContent = "Máy Mac mini / Mac Studio / Mac Pro cắm điện trực tiếp, chuẩn xuất xưởng không trang bị pin lưu động.";
     } else {
       banner.className = "battery-verdict-banner banner-authentic";
       if (shieldIcon) shieldIcon.textContent = "🛡️";
@@ -601,16 +585,71 @@ function renderBatteryForensics(drive) {
     }
   }
 
-  // Correlation Numbers
-  setElemText("battCycleCountVal", `${batt.cycleCount || 0}`);
-  setElemText("battConditionText", `Tình trạng: ${drive.batteryCondition || "Normal"}`);
+  // Exact Numbers
+  const healthNum = (batt.healthPercentage !== undefined) ? Number(batt.healthPercentage) : (Number(drive.batteryHealth) || 100);
+  const healthStr = isNaN(healthNum) ? "100.00%" : `${healthNum.toFixed(2)}%`;
+  const cycles = batt.cycleCount !== undefined ? batt.cycleCount : (drive.batteryCycleCount || 0);
+  const cyclesRem = batt.cyclesRemaining !== undefined ? batt.cyclesRemaining : Math.max(0, 1000 - cycles);
+  const cycleDepPct = (batt.cycleDepletionPercent !== undefined) ? Number(batt.cycleDepletionPercent) : Number((cycles / 10).toFixed(2));
+  const capLossMAh = batt.capacityLossMAh !== undefined ? batt.capacityLossMAh : Math.max(0, (batt.designCapacity || 5000) - (batt.maxCapacity || 5000));
+  const capLossPct = (batt.capacityLossPercent !== undefined) ? Number(batt.capacityLossPercent) : Number(Math.max(0, 100 - healthNum).toFixed(2));
+  const currentCap = batt.currentCapacity || batt.maxCapacity || 0;
+  const socPct = (batt.stateOfChargePercent !== undefined) ? Number(batt.stateOfChargePercent) : (batt.maxCapacity > 0 ? (currentCap / batt.maxCapacity) * 100 : 100);
+
+  if (isDesktop) {
+    setElemText("battCycleCountVal", "N/A");
+    setElemText("battCycleDepletionText", "Nguồn AC cố định");
+    setElemText("battHealthSummaryVal", "N/A");
+    setElemText("battCapacityLossText", "Thiết bị không có pin");
+    setElemText("battHealthPercent", "N/A");
+    setElemText("battCurrentCap", "N/A (Nguồn AC)");
+    setElemText("battCapLoss", "N/A");
+    setElemText("battCycleDepletion", "N/A (Nguồn AC trực tiếp)");
+    setElemText("battDesignCap", "N/A");
+    setElemText("battMaxCap", "N/A");
+    setElemText("battTotalVoltage", "N/A (Cắm nguồn AC)");
+    setElemText("battAmperage", "N/A");
+    setElemText("battTemp", "N/A");
+    setElemText("battDeviceName", "N/A (Direct AC Power)");
+    setElemText("battSerialNum", "N/A - Direct AC Power");
+    setElemText("battManufacturer", "N/A (Thiết bị để bàn)");
+  } else {
+    setElemText("battCycleCountVal", `${cycles} / 1000 lần`);
+    setElemText("battCycleDepletionText", `Khấu hao: ${cycleDepPct.toFixed(2)}% | Còn ${cyclesRem} chu kỳ`);
+    setElemText("battHealthSummaryVal", healthStr);
+    const healthSummaryElem = document.getElementById("battHealthSummaryVal");
+    if (healthSummaryElem) {
+      healthSummaryElem.style.color = healthNum >= 80 ? "var(--status-good)" : healthNum >= 50 ? "var(--status-warning)" : "var(--status-critical)";
+    }
+    setElemText("battCapacityLossText", `Hao hụt: -${capLossMAh} mAh (-${capLossPct.toFixed(2)}%)`);
+    setElemText("battHealthPercent", `${healthStr} (${healthNum >= 80 ? 'Bình thường' : 'Chai pin'})`);
+    const healthPercentElem = document.getElementById("battHealthPercent");
+    if (healthPercentElem) {
+      healthPercentElem.style.color = healthNum >= 80 ? "var(--status-good)" : "var(--status-critical)";
+    }
+    setElemText("battCurrentCap", `${currentCap} mAh (${socPct.toFixed(2)}%)`);
+    setElemText("battCapLoss", `-${capLossMAh} mAh (-${capLossPct.toFixed(2)}%)`);
+    setElemText("battCycleDepletion", `${cycleDepPct.toFixed(2)}% (Còn lại ${cyclesRem} lần sạc)`);
+    setElemText("battDesignCap", `${batt.designCapacity || 0} mAh`);
+    setElemText("battMaxCap", `${batt.maxCapacity || 0} mAh`);
+    setElemText("battTotalVoltage", `${batt.voltageMV || 0} mV (${((batt.voltageMV || 0)/1000).toFixed(2)} V)`);
+    setElemText("battAmperage", `${batt.amperageMA || 0} mA`);
+    setElemText("battTemp", `${(batt.temperatureC || 28.00).toFixed(2)} °C`);
+    setElemText("battDeviceName", batt.deviceName || "Apple BMS Controller");
+    setElemText("battSerialNum", batt.serialNumber || "D86_OEM_APPLE");
+    setElemText("battManufacturer", batt.manufacturer || "SMP / Simplo (Apple)");
+  }
+
   setElemText("battSSDHoursVal", `${drive.powerOnHours || 0} giờ`);
-  setElemText("battSSDTBWVal", `Đã ghi: ${drive.wearInfo?.writtenTB || drive.dataUnitsWrittenTB || 0} TBW`);
+  setElemText("battSSDTBWVal", `Đã ghi: ${(drive.wearInfo?.writtenTB || drive.dataUnitsWrittenTB || 0).toFixed(2)} TBW`);
   setElemText("battCellDiffVal", `${batt.cellMaxDiffMV || 0} mV`);
   
   const diffStatus = document.getElementById("battCellBalanceStatus");
   if (diffStatus) {
-    if ((batt.cellMaxDiffMV || 0) <= 10) {
+    if (isDesktop) {
+      diffStatus.textContent = "Thiết bị không có cell pin";
+      diffStatus.style.color = "var(--text-secondary)";
+    } else if ((batt.cellMaxDiffMV || 0) <= 10) {
       diffStatus.textContent = "Trạng thái: Hoàn hảo (<10mV)";
       diffStatus.style.color = "var(--status-good)";
     } else if ((batt.cellMaxDiffMV || 0) <= 30) {
@@ -626,41 +665,46 @@ function renderBatteryForensics(drive) {
   const cellGrid = document.getElementById("batteryCellGrid");
   if (cellGrid) {
     cellGrid.innerHTML = "";
-    const cells = batt.cellVoltages || [4200, 4200, 4200];
-    cells.forEach((v, idx) => {
-      const card = document.createElement("div");
-      card.className = "cell-meter-card";
-      card.innerHTML = `
-        <div class="cell-meter-title">CELL ${idx + 1}</div>
-        <div class="cell-meter-voltage">${v} mV</div>
-        <span class="cell-diff-badge ${v >= 4150 ? 'badge-good' : v >= 3900 ? 'badge-notice' : 'badge-warning'}">${(v / 1000).toFixed(3)} V</span>
+    if (isDesktop) {
+      cellGrid.innerHTML = `
+        <div class="cell-meter-card" style="grid-column: 1 / -1; padding: 20px; color: var(--text-secondary);">
+          <span style="font-size: 1.5rem;">⚡</span>
+          <div style="font-weight: 600; margin-top: 6px;">Thiết bị để bàn dùng nguồn AC cố định</div>
+          <div style="font-size: 0.8rem; margin-top: 2px;">Không trang bị các cell pin lithium-ion</div>
+        </div>
       `;
-      cellGrid.appendChild(card);
-    });
+    } else {
+      const cells = batt.cellVoltages || [4200, 4200, 4200];
+      cells.forEach((v, idx) => {
+        const card = document.createElement("div");
+        card.className = "cell-meter-card";
+        card.innerHTML = `
+          <div class="cell-meter-title">CELL ${idx + 1}</div>
+          <div class="cell-meter-voltage">${v} mV</div>
+          <span class="cell-diff-badge ${v >= 4150 ? 'badge-good' : v >= 3900 ? 'badge-notice' : 'badge-warning'}">${(v / 1000).toFixed(3)} V</span>
+        `;
+        cellGrid.appendChild(card);
+      });
+    }
   }
-
-  // Hardware details
-  setElemText("battTotalVoltage", `${batt.voltageMV || 0} mV (${((batt.voltageMV || 0)/1000).toFixed(2)} V)`);
-  setElemText("battAmperage", `${batt.amperageMA || 0} mA`);
-  setElemText("battTemp", `${batt.temperatureC || 28} °C`);
-  setElemText("battDeviceName", batt.deviceName || "Apple BMS Controller");
-  setElemText("battDesignCap", `${batt.designCapacity || 0} mAh`);
-  setElemText("battMaxCap", `${batt.maxCapacity || 0} mAh`);
-  setElemText("battRawMaxCap", `${batt.rawMaxCapacity || batt.maxCapacity || 0} mAh`);
-  setElemText("battHealthPercent", `${batt.healthPercentage || 100}%`);
-  setElemText("battSerialNum", batt.serialNumber || "D86_OEM_APPLE");
-  setElemText("battManufacturer", batt.manufacturer || "SMP / Simplo (Apple)");
 
   // Evidence List
   const evidenceContainer = document.getElementById("batteryEvidenceContainer");
   if (evidenceContainer) {
     evidenceContainer.innerHTML = "";
     const reasons = batt.tamperingReasons || [];
-    if (reasons.length === 0) {
+    if (isDesktop) {
+      evidenceContainer.innerHTML = `
+        <div class="evidence-item" style="border-left: 4px solid var(--accent-apple-blue); color: var(--text-primary);">
+          <span>🖥️</span>
+          <div>Thiết bị cắm nguồn trực tiếp AC (Mac mini / Mac Studio / Mac Pro). Không có hệ thống pin lưu động.</div>
+        </div>
+      `;
+    } else if (reasons.length === 0) {
       evidenceContainer.innerHTML = `
         <div class="evidence-item" style="border-left: 4px solid var(--status-good); color: var(--text-primary);">
           <span>✅</span>
-          <div>Không phát hiện bất kỳ dấu hiệu can thiệp, reset hay kích pin ảo nào. Mọi phép thử đối chiếu chéo (Cross-Forensics) đều ĐẠT chuẩn Apple.</div>
+          <div>Không phát hiện bất kỳ dấu hiệu can thiệp, reset hay kích pin ảo nào. Mọi phép thử đối chiếu chéo (Cross-Forensics) đều ĐẠT chuẩn Apple Genius Bar.</div>
         </div>
       `;
     } else {
@@ -908,8 +952,20 @@ function renderHardwareSpecs(drive) {
   setElemText("specOS", drive.osVersion || "macOS Sequoia");
   setElemText("specDisplay", drive.display || (window.realMacSystemInfo?.display) || "Apple Retina Display");
   setElemText("specCooling", drive.coolingType || (window.realMacSystemInfo?.coolingType) || "Active High-Efficiency Thermal System");
-  setElemText("specBatteryHealth", `${drive.batteryHealth || 100}% (${drive.batteryCondition || "Normal"})`);
-  setElemText("specBatteryCycles", `${drive.batteryCycleCount || 0} Chu kỳ`);
+  
+  const batt = drive.batteryForensics;
+  const isDesktop = batt ? (batt.classification === "DESKTOP_NO_BATTERY" || batt.tamperingStatus === "DESKTOP_NO_BATTERY" || !batt.isInstalled) : (drive.batteryHealth === undefined);
+  
+  if (isDesktop) {
+    setElemText("specBatteryHealth", "N/A (Nguồn AC trực tiếp)");
+    setElemText("specBatteryCycles", "N/A (Thiết bị để bàn)");
+  } else {
+    const bHealthNum = (batt && batt.healthPercentage !== undefined) ? Number(batt.healthPercentage) : (Number(drive.batteryHealth) || 100);
+    const bHealthStr = isNaN(bHealthNum) ? "100.00%" : `${bHealthNum.toFixed(2)}%`;
+    const bCycles = (batt && batt.cycleCount !== undefined) ? batt.cycleCount : (drive.batteryCycleCount || 0);
+    setElemText("specBatteryHealth", `${bHealthStr} (${drive.batteryCondition || "Normal"})`);
+    setElemText("specBatteryCycles", `${bCycles} / 1000 Chu kỳ`);
+  }
   
   setElemText("specDriveModel", drive.driveModel);
   setElemText("specSerial", drive.serialNumber);

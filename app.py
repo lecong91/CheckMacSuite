@@ -468,6 +468,9 @@ class MacHardwareScanner:
 
                 if is_installed:
                     batt["cycleCount"] = int(raw_dict.get("CycleCount", 0))
+                    batt["maxCycles"] = 1000
+                    batt["cyclesRemaining"] = max(0, 1000 - batt["cycleCount"])
+                    batt["cycleDepletionPercent"] = round((batt["cycleCount"] / 1000.0) * 100.0, 2)
                     
                     # Exact Design Capacity from BMS, falling back to official Apple table
                     raw_design = int(raw_dict.get("DesignCapacity", 0))
@@ -483,8 +486,9 @@ class MacHardwareScanner:
                     batt["rawMaxCapacity"] = int(raw_dict.get("AppleRawMaxCapacity", batt["maxCapacity"]))
                     batt["rawCurrentCapacity"] = int(raw_dict.get("AppleRawCurrentCapacity", batt["currentCapacity"]))
                     batt["voltageMV"] = int(raw_dict.get("Voltage", 0))
+                    batt["voltageV"] = round(batt["voltageMV"] / 1000.0, 2) if batt["voltageMV"] > 0 else 0.0
                     batt["amperageMA"] = int(raw_dict.get("Amperage", 0))
-                    batt["temperatureC"] = round(int(raw_dict.get("Temperature", 2980)) / 100 - 273.15, 1) if int(raw_dict.get("Temperature", 0)) > 1000 else 28.0
+                    batt["temperatureC"] = round(int(raw_dict.get("Temperature", 2980)) / 100 - 273.15, 2) if int(raw_dict.get("Temperature", 0)) > 1000 else 28.00
                     batt["permanentFailureStatus"] = int(raw_dict.get("PermanentFailureStatus", 0))
 
                     # Parse Battery Serial Number cleanly
@@ -492,6 +496,41 @@ class MacHardwareScanner:
                     batt["serialNumber"] = raw_serial if raw_serial else "N/A"
                     batt["deviceName"] = raw_dict.get("DeviceName", "Apple Battery")
                     batt["manufacturer"] = raw_dict.get("Manufacturer", "Apple")
+
+                    # Cross-verify with system_profiler SPPowerDataType
+                    try:
+                        pwr_res = subprocess.run(["system_profiler", "SPPowerDataType"], capture_output=True, text=True, timeout=5)
+                        if pwr_res.returncode == 0:
+                            for p_line in pwr_res.stdout.splitlines():
+                                p_line_s = p_line.strip()
+                                if "Condition:" in p_line_s:
+                                    batt["condition"] = p_line_s.split(":", 1)[1].strip()
+                                elif "State of Charge (%):" in p_line_s:
+                                    try:
+                                        batt["stateOfChargePercent"] = float(p_line_s.split(":", 1)[1].strip())
+                                    except ValueError:
+                                        pass
+                                elif "Full Charge Capacity (mAh):" in p_line_s:
+                                    try:
+                                        sp_fcc = int(p_line_s.split(":", 1)[1].strip())
+                                        if sp_fcc > 1000:
+                                            batt["maxCapacity"] = sp_fcc
+                                    except ValueError:
+                                        pass
+                                elif "Cycle Count:" in p_line_s:
+                                    try:
+                                        sp_cycles = int(p_line_s.split(":", 1)[1].strip())
+                                        if sp_cycles >= 0:
+                                            batt["cycleCount"] = sp_cycles
+                                            batt["cyclesRemaining"] = max(0, 1000 - sp_cycles)
+                                            batt["cycleDepletionPercent"] = round((sp_cycles / 1000.0) * 100.0, 2)
+                                    except ValueError:
+                                        pass
+                    except Exception:
+                        pass
+
+                    if "condition" not in batt or not batt["condition"]:
+                        batt["condition"] = "Normal" if batt["permanentFailureStatus"] == 0 else "Service Recommended"
 
                     # Decode ManufactureDate integer (Standard SBData Specification)
                     # day = raw & 0x1F, month = (raw >> 5) & 0xF, year = 1980 + ((raw >> 9) & 0x7F)
@@ -523,9 +562,20 @@ class MacHardwareScanner:
                     if len(cells) > 1:
                         batt["cellMaxDiffMV"] = max(cells) - min(cells)
 
-                    # Calculate Health %
-                    if batt["designCapacity"] > 0:
-                        batt["healthPercentage"] = min(100, round((batt["maxCapacity"] / batt["designCapacity"]) * 100, 1))
+                    # Calculate Health % to strict 2 decimal places
+                    if batt["designCapacity"] > 0 and batt["maxCapacity"] > 0:
+                        raw_health = (batt["maxCapacity"] / float(batt["designCapacity"])) * 100.0
+                        batt["healthPercentage"] = round(raw_health, 2)
+                        batt["capacityLossMAh"] = max(0, batt["designCapacity"] - batt["maxCapacity"])
+                        batt["capacityLossPercent"] = round(max(0.0, 100.0 - raw_health), 2)
+                    else:
+                        batt["healthPercentage"] = 100.00
+                        batt["capacityLossMAh"] = 0
+                        batt["capacityLossPercent"] = 0.00
+
+                    # Calculate State of Charge %
+                    if batt["maxCapacity"] > 0 and batt["currentCapacity"] > 0 and "stateOfChargePercent" not in batt:
+                        batt["stateOfChargePercent"] = round((batt["currentCapacity"] / float(batt["maxCapacity"])) * 100.0, 2)
 
         except Exception as e:
             print(f"[!] Error querying AppleSmartBattery: {e}", file=sys.stderr)
@@ -1222,7 +1272,7 @@ class MacHardwareScanner:
                 "serial": batt_serial,
                 "status": b_status,
                 "statusText": b_text,
-                "details": f"Chu kỳ: {batt_info.get('cycleCount')} lần | Health: {batt_info.get('healthPercentage')}% | Ngày SX: {batt_mfg_date} | Lệch cell: {batt_info.get('cellMaxDiffMV', 0)} mV",
+                "details": f"Chu kỳ: {batt_info.get('cycleCount', 0)} / 1000 lần ({batt_info.get('cycleDepletionPercent', 0):.2f}%) | Health: {batt_info.get('healthPercentage', 100):.2f}% | Ngày SX: {batt_mfg_date} | Lệch cell: {batt_info.get('cellMaxDiffMV', 0)} mV",
                 "isOriginal": is_batt_zin
             })
             

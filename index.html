@@ -391,13 +391,19 @@
         <div class="correlation-card">
           <div class="correlation-label">Số Chu kỳ sạc (Cycle Count)</div>
           <div id="battCycleCountVal" class="correlation-val">0</div>
-          <div class="correlation-sub" id="battConditionText">Tình trạng: Normal</div>
+          <div class="correlation-sub" id="battCycleDepletionText">Khấu hao: 0.00% (Chuẩn: 1000 lần)</div>
+        </div>
+
+        <div class="correlation-card">
+          <div class="correlation-label">Sức khỏe Pin (Health / SoH)</div>
+          <div id="battHealthSummaryVal" class="correlation-val" style="color: var(--status-good);">100.00%</div>
+          <div class="correlation-sub" id="battCapacityLossText">Hao hụt: 0 mAh (0.00%)</div>
         </div>
 
         <div class="correlation-card">
           <div class="correlation-label">Giờ hoạt động SSD (Power On Hours)</div>
           <div id="battSSDHoursVal" class="correlation-val">0 giờ</div>
-          <div class="correlation-sub" id="battSSDTBWVal">Đã ghi: 0 TBW</div>
+          <div class="correlation-sub" id="battSSDTBWVal">Đã ghi: 0.00 TBW</div>
         </div>
 
         <div class="correlation-card">
@@ -430,7 +436,7 @@
             </div>
             <div class="spec-item">
               <span class="spec-label">Nhiệt độ Pin:</span>
-              <span id="battTemp" class="spec-value">0 °C</span>
+              <span id="battTemp" class="spec-value">0.00 °C</span>
             </div>
             <div class="spec-item">
               <span class="spec-label">IC Điều khiển BMS:</span>
@@ -455,16 +461,24 @@
               <span id="battMaxCap" class="spec-value">0 mAh</span>
             </div>
             <div class="spec-item">
-              <span class="spec-label">Dung lượng Thô Phần cứng:</span>
-              <span id="battRawMaxCap" class="spec-value">0 mAh</span>
+              <span class="spec-label">Mức Pin Hiện tại (SoC):</span>
+              <span id="battCurrentCap" class="spec-value">0 mAh (0.00%)</span>
             </div>
             <div class="spec-item">
               <span class="spec-label">Độ Chai Pin (Health %):</span>
-              <span id="battHealthPercent" class="spec-value">100%</span>
+              <span id="battHealthPercent" class="spec-value font-mono" style="font-weight: 700;">100.00%</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Hao hụt Dung lượng (Loss):</span>
+              <span id="battCapLoss" class="spec-value">0 mAh (0.00%)</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Tiêu hao Chu kỳ (1000 Max):</span>
+              <span id="battCycleDepletion" class="spec-value">0.00% (Còn 1000 lần)</span>
             </div>
             <div class="spec-item">
               <span class="spec-label">Số Serial Pin:</span>
-              <span id="battSerialNum" class="spec-value">D86...</span>
+              <span id="battSerialNum" class="spec-value font-mono">D86...</span>
             </div>
             <div class="spec-item">
               <span class="spec-label">Nhà sản xuất Cell:</span>

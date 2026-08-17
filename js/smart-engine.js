@@ -98,36 +98,39 @@ class SmartEngine {
     if (batt) {
       battClass = batt.classification || batt.tamperingStatus || "GENUINE_FACTORY_ORIGINAL";
       const battCycles = batt.cycleCount !== undefined ? batt.cycleCount : (drive.batteryCycleCount || 0);
-      const battHealthVal = batt.healthPercentage !== undefined ? batt.healthPercentage : (drive.batteryHealth || 100);
+      const battHealthNum = batt.healthPercentage !== undefined ? Number(batt.healthPercentage) : (Number(drive.batteryHealth) || 100);
+      const battHealthStr = isNaN(battHealthNum) ? "100.00%" : battHealthNum.toFixed(2) + "%";
       const cellDiff = batt.cellMaxDiffMV || 0;
       const mfgDate = batt.manufactureDate || "N/A";
 
       if (battClass === "TAMPERED_FRAUD") {
         battIcon = "🚨";
-        battStatusText = `PHÁT HIỆN KÍCH PIN: Lệch áp cell (${cellDiff}mV) hoặc reset số chu kỳ ảo (${battCycles} lần / Health ${battHealthVal}%).`;
+        battStatusText = `PHÁT HIỆN KÍCH PIN: Lệch áp cell (${cellDiff}mV) hoặc reset số chu kỳ ảo (${battCycles} lần / Health ${battHealthStr}).`;
       } else if (battClass === "THIRD_PARTY_REPLACED") {
         battIcon = "⚠️";
-        battStatusText = `PIN LINH KIỆN BÊN THỨ 3: Đã thay pin mới (${battCycles} chu kỳ, Health ${battHealthVal}%), không phải pin Zin Apple OEM.`;
+        battStatusText = `PIN LINH KIỆN BÊN THỨ 3: Đã thay pin mới (${battCycles} chu kỳ, Health ${battHealthStr}), không phải pin Zin Apple OEM.`;
       } else if (battClass === "APPLE_AUTHORIZED_REPLACEMENT") {
         battIcon = "🔄";
-        battStatusText = `PIN CHÍNH HÃNG APPLE THAY MỚI: Pin chuẩn Apple OEM xuất xưởng ${mfgDate} (${battCycles} chu kỳ, Health ${battHealthVal}%).`;
+        battStatusText = `PIN CHÍNH HÃNG APPLE THAY MỚI: Pin chuẩn Apple OEM xuất xưởng ${mfgDate} (${battCycles} chu kỳ, Health ${battHealthStr}).`;
       } else if (battClass === "DESKTOP_NO_BATTERY" || battClass === "DESKTOP_NA") {
         battIcon = "⚡";
         battStatusText = `Nguồn AC trực tiếp (Mac mini/Studio/Pro): Thiết bị để bàn cắm nguồn cố định.`;
-      } else if (battHealthVal < 80 || drive.batteryCondition === "Service Recommended") {
+      } else if (battHealthNum < 80 || drive.batteryCondition === "Service Recommended") {
         battIcon = "⚠️";
-        battStatusText = `PIN ZIN ĐÃ CHAI (${battHealthVal}% - ${battCycles} chu kỳ): Dung lượng dưới 80%, khuyến nghị thay pin chính hãng.`;
+        battStatusText = `PIN ZIN ĐÃ CHAI (${battHealthStr} - ${battCycles} chu kỳ): Dung lượng dưới 80.00%, khuyến nghị thay pin chính hãng.`;
       } else {
         battIcon = "🔋";
-        battStatusText = `PIN ZIN NGUYÊN BẢN (${battHealthVal}% - ${battCycles} chu kỳ): Cell cân bằng hoàn hảo (lệch ${cellDiff}mV), đồng bộ theo máy.`;
+        battStatusText = `PIN ZIN NGUYÊN BẢN (${battHealthStr} - ${battCycles} chu kỳ): Cell cân bằng hoàn hảo (lệch ${cellDiff}mV), đồng bộ theo máy.`;
       }
     } else if (drive.batteryHealth !== undefined) {
-      if (drive.batteryHealth < 80) {
+      const bNum = Number(drive.batteryHealth);
+      const bStr = isNaN(bNum) ? "100.00%" : bNum.toFixed(2) + "%";
+      if (bNum < 80) {
         battIcon = "⚠️";
-        battStatusText = `PIN ĐÃ CHAI (${drive.batteryHealth}% - ${drive.batteryCycleCount || 0} chu kỳ): Dung lượng giảm sút, nên bảo dưỡng.`;
+        battStatusText = `PIN ĐÃ CHAI (${bStr} - ${drive.batteryCycleCount || 0} chu kỳ): Dung lượng giảm sút, nên bảo dưỡng.`;
       } else {
         battIcon = "🔋";
-        battStatusText = `PIN KHỎE (${drive.batteryHealth}% - ${drive.batteryCycleCount || 0} chu kỳ): Vận hành ổn định.`;
+        battStatusText = `PIN KHỎE (${bStr} - ${drive.batteryCycleCount || 0} chu kỳ): Vận hành ổn định.`;
       }
     }
 
