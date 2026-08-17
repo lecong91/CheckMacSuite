@@ -33,14 +33,14 @@ class ComponentsAuditController {
           verdictBadge.className = "badge badge-critical";
           verdictBadge.textContent = "ĐÃ QUA SỬA CHỮA / THAY THẾ";
         }
-        if (verdictDesc) verdictDesc.textContent = `Phát hiện ${auditData.replacedCount} linh kiện đã bị can thiệp hoặc thay thế bằng linh kiện ngoài không đồng bộ chuẩn Apple.`;
+        if (verdictDesc) verdictDesc.textContent = `Phát hiện ${auditData.replacedCount} cụm linh kiện đã được thay thế hoặc sửa chữa trong quá trình sử dụng.`;
       } else if (auditData.suspiciousCount > 0) {
         verdictBanner.className = "audit-banner banner-warning";
         if (verdictBadge) {
           verdictBadge.className = "badge badge-warning";
           verdictBadge.textContent = "NGHI VẤN CAN THIỆP";
         }
-        if (verdictDesc) verdictDesc.textContent = "Phát hiện thông số linh kiện có độ lệch bất thường so với cấu hình xuất xưởng.";
+        if (verdictDesc) verdictDesc.textContent = "Phát hiện thông số phần cứng hoặc vi mạch có dấu hiệu bất thường cần chuyên gia mở máy kiểm tra.";
       } else {
         verdictBanner.className = "audit-banner banner-genuine";
         if (verdictBadge) {
@@ -65,17 +65,25 @@ class ComponentsAuditController {
       let statusIcon = "✅";
       let borderColor = "var(--status-good)";
 
-      if (comp.status === "REPLACED" || comp.status === "REPLACED_OR_TAMPERED") {
+      if (comp.status === "REPLACED_THIRD_PARTY" || comp.status === "REPLACED" || comp.status === "REPLACED_OR_TAMPERED") {
         statusBadgeClass = "badge-critical";
         statusIcon = "🚨";
         borderColor = "var(--status-critical)";
-      } else if (comp.status === "SUSPICIOUS") {
+      } else if (comp.status === "TAMPERED_FRAUD") {
+        statusBadgeClass = "badge-critical";
+        statusIcon = "🚨";
+        borderColor = "var(--status-critical)";
+      } else if (comp.status === "REPLACED_GENUINE_APPLE") {
+        statusBadgeClass = "badge-warning";
+        statusIcon = "🔄";
+        borderColor = "var(--status-warning)";
+      } else if (comp.status === "DEGRADED" || comp.status === "SUSPICIOUS") {
         statusBadgeClass = "badge-warning";
         statusIcon = "⚠️";
         borderColor = "var(--status-warning)";
       } else if (comp.status === "DESKTOP_NA") {
         statusBadgeClass = "badge-notice";
-        statusIcon = "🖥️";
+        statusIcon = "⚡";
         borderColor = "var(--border-subtle)";
       }
 

@@ -307,6 +307,11 @@ function initTabs() {
     btn.addEventListener("click", () => {
       const targetTab = btn.getAttribute("data-tab");
       
+      // Auto pause surface scanner if switching away to save CPU
+      if (targetTab !== "tab-surface" && window.surfaceScannerInstance && window.surfaceScannerInstance.isRunning && !window.surfaceScannerInstance.isPaused) {
+        window.surfaceScannerInstance.pause();
+      }
+
       tabButtons.forEach(b => b.classList.remove("active"));
       tabPanels.forEach(p => p.classList.remove("active"));
 
@@ -543,26 +548,38 @@ function renderBatteryForensics(drive) {
   const verdictDesc = document.getElementById("batteryVerdictDesc");
 
   if (banner && verdictTitle) {
-    if (batt.tamperingStatus === "TAMPERED_FRAUD") {
+    const battClass = batt.classification || batt.tamperingStatus || "GENUINE_AUTHENTIC";
+
+    if (battClass === "TAMPERED_FRAUD") {
       banner.className = "battery-verdict-banner banner-tampered";
       if (shieldIcon) shieldIcon.textContent = "🚨";
-      verdictTitle.textContent = "PHÁT HIỆN DẤU HIỆU KÍCH PIN / RESET CHU KỲ SẠC ẢO!";
-      if (verdictDesc) verdictDesc.textContent = batt.tamperingVerdict || "Thông số pin không khớp với số giờ chạy thực tế của ổ cứng SSD và có độ lệch cell cao.";
-    } else if (batt.tamperingStatus === "DESKTOP_NO_BATTERY") {
+      verdictTitle.textContent = "PHÁT HIỆN DẤU HIỆU GIAN LẬN: KÍCH PIN / RESET CHU KỲ SẠC ẢO!";
+      if (verdictDesc) verdictDesc.textContent = batt.tamperingVerdict || "Thông số pin không khớp với số giờ chạy thực tế của ổ cứng SSD hoặc có độ lệch điện áp cell nghiêm trọng.";
+    } else if (battClass === "THIRD_PARTY_REPLACED" || battClass === "REPLACED_THIRD_PARTY") {
+      banner.className = "battery-verdict-banner banner-tampered";
+      if (shieldIcon) shieldIcon.textContent = "⚠️";
+      verdictTitle.textContent = "PHÁT HIỆN PIN LINH KIỆN BÊN THỨ 3 (ĐÃ THAY THẾ)";
+      if (verdictDesc) verdictDesc.textContent = batt.tamperingVerdict || "Viên pin đang sử dụng là pin linh kiện thay thế bên thứ 3 (Non-Apple OEM), số serial hoặc cấu trúc BMS không đồng bộ xuất xưởng.";
+    } else if (battClass === "APPLE_AUTHORIZED_REPLACEMENT" || battClass === "REPLACED_GENUINE_APPLE") {
+      banner.className = "battery-verdict-banner banner-suspicious";
+      if (shieldIcon) shieldIcon.textContent = "🔄";
+      verdictTitle.textContent = "PIN CHÍNH HÃNG APPLE ĐÃ ĐƯỢC THAY MỚI";
+      if (verdictDesc) verdictDesc.textContent = batt.tamperingVerdict || "Pin chuẩn Apple OEM chính hãng được thay mới trong quá trình bảo dưỡng của máy.";
+    } else if (battClass === "DEGRADED_SERVICE_REQUIRED" || battClass === "DEGRADED") {
+      banner.className = "battery-verdict-banner banner-suspicious";
+      if (shieldIcon) shieldIcon.textContent = "⚠️";
+      verdictTitle.textContent = "PIN ZIN THEO MÁY ĐÃ SUY GIẢM (CẦN BẢO DƯỠNG)";
+      if (verdictDesc) verdictDesc.textContent = "Pin nguyên bản theo máy nhưng dung lượng đã chai dưới 80%. Khuyến nghị thay pin mới.";
+    } else if (battClass === "DESKTOP_NO_BATTERY" || battClass === "DESKTOP_NA") {
       banner.className = "battery-verdict-banner banner-desktop";
       if (shieldIcon) shieldIcon.textContent = "🖥️";
       verdictTitle.textContent = "THIẾT BỊ DÙNG NGUỒN TRỰC TIẾP (KHÔNG CÓ PIN)";
       if (verdictDesc) verdictDesc.textContent = "Máy Mac mini / Mac Studio / Mac Pro cắm điện trực tiếp, không sử dụng pin lưu động.";
-    } else if (batt.tamperingStatus === "SUSPICIOUS") {
-      banner.className = "battery-verdict-banner banner-suspicious";
-      if (shieldIcon) shieldIcon.textContent = "⚠️";
-      verdictTitle.textContent = "NGHI VẤN BẤT THƯỜNG VỀ THÔNG SỐ PIN";
-      if (verdictDesc) verdictDesc.textContent = batt.tamperingVerdict;
     } else {
       banner.className = "battery-verdict-banner banner-authentic";
       if (shieldIcon) shieldIcon.textContent = "🛡️";
-      verdictTitle.textContent = "PIN NGUYÊN BẢN CHÍNH HÃNG (ZIN APPLE)";
-      if (verdictDesc) verdictDesc.textContent = "Số lần sạc, dung lượng và độ cân bằng giữa các cell pin hoàn toàn khớp với tuổi thọ phần cứng máy.";
+      verdictTitle.textContent = "PIN ZIN NGUYÊN BẢN (XUẤT XƯỞNG THEO MÁY)";
+      if (verdictDesc) verdictDesc.textContent = "Số lần sạc, ngày sản xuất cell và dung lượng thiết kế hoàn toàn khớp 100% với cấu hình xuất xưởng Apple.";
     }
   }
 

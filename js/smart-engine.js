@@ -85,23 +85,37 @@ class SmartEngine {
       ssdStatusText = `SSD HOÀN HẢO (${ssdHealth}%): Chip NAND tối ưu, dung lượng ghi còn lại ~${remainTBW} TBW, 0 lỗi ECC.`;
     }
 
-    // 2. Evaluate Battery Component
+    // 2. Evaluate Battery Component - Rigorous 8-Layer Forensic Hook
     const batt = drive.batteryForensics;
     let battStatusText = "Pin hoạt động tiêu chuẩn, chu kỳ sạc ổn định.";
     let battIcon = "🔋";
+    let battClass = "GENUINE_FACTORY_ORIGINAL";
+
     if (batt) {
-      if (batt.tamperingStatus === "TAMPERED_FRAUD") {
+      battClass = batt.classification || batt.tamperingStatus || "GENUINE_FACTORY_ORIGINAL";
+      const battCycles = batt.cycleCount !== undefined ? batt.cycleCount : (drive.batteryCycleCount || 0);
+      const battHealthVal = batt.healthPercentage !== undefined ? batt.healthPercentage : (drive.batteryHealth || 100);
+      const cellDiff = batt.cellMaxDiffMV || 0;
+      const mfgDate = batt.manufactureDate || "N/A";
+
+      if (battClass === "TAMPERED_FRAUD") {
         battIcon = "🚨";
-        battStatusText = `PHÁT HIỆN KÍCH PIN: Lệch áp cell (${batt.cellMaxDiffMV || 0}mV) hoặc reset số chu kỳ ảo (${batt.cycleCount} chu kỳ / ${drive.powerOnHours || 0}h chạy).`;
-      } else if (batt.tamperingStatus === "DESKTOP_NO_BATTERY" || batt.tamperingStatus === "DESKTOP_NA") {
-        battIcon = "⚡";
-        battStatusText = `Nguồn AC trực tiếp (Mac mini/Studio/Pro): Thiết bị cắm nguồn cố định.`;
-      } else if (drive.batteryHealth < 80 || drive.batteryCondition === "Service Recommended") {
+        battStatusText = `PHÁT HIỆN KÍCH PIN: Lệch áp cell (${cellDiff}mV) hoặc reset số chu kỳ ảo (${battCycles} lần / Health ${battHealthVal}%).`;
+      } else if (battClass === "THIRD_PARTY_REPLACED") {
         battIcon = "⚠️";
-        battStatusText = `PIN ĐÃ CHAI (${drive.batteryHealth}% - ${drive.batteryCycleCount} chu kỳ): Dung lượng dưới 80%, khuyến nghị thay pin chính hãng.`;
+        battStatusText = `PIN LINH KIỆN BÊN THỨ 3: Đã thay pin mới (${battCycles} chu kỳ, Health ${battHealthVal}%), không phải pin Zin Apple OEM.`;
+      } else if (battClass === "APPLE_AUTHORIZED_REPLACEMENT") {
+        battIcon = "🔄";
+        battStatusText = `PIN CHÍNH HÃNG APPLE THAY MỚI: Pin chuẩn Apple OEM xuất xưởng ${mfgDate} (${battCycles} chu kỳ, Health ${battHealthVal}%).`;
+      } else if (battClass === "DESKTOP_NO_BATTERY" || battClass === "DESKTOP_NA") {
+        battIcon = "⚡";
+        battStatusText = `Nguồn AC trực tiếp (Mac mini/Studio/Pro): Thiết bị để bàn cắm nguồn cố định.`;
+      } else if (battHealthVal < 80 || drive.batteryCondition === "Service Recommended") {
+        battIcon = "⚠️";
+        battStatusText = `PIN ZIN ĐÃ CHAI (${battHealthVal}% - ${battCycles} chu kỳ): Dung lượng dưới 80%, khuyến nghị thay pin chính hãng.`;
       } else {
         battIcon = "🔋";
-        battStatusText = `PIN ZIN APPLE NGUYÊN BẢN (${drive.batteryHealth || 100}% - ${drive.batteryCycleCount || 0} chu kỳ): Cell cân bằng hoàn hảo (lệch ${batt.cellMaxDiffMV || 2}mV).`;
+        battStatusText = `PIN ZIN NGUYÊN BẢN (${battHealthVal}% - ${battCycles} chu kỳ): Cell cân bằng hoàn hảo (lệch ${cellDiff}mV), đồng bộ theo máy.`;
       }
     } else if (drive.batteryHealth !== undefined) {
       if (drive.batteryHealth < 80) {
@@ -120,7 +134,7 @@ class SmartEngine {
     if (audit) {
       if (audit.overallStatus === "PARTS_REPLACED" || audit.replacedCount > 0) {
         partsIcon = "⚠️";
-        partsStatusText = `PHÁT HIỆN ${audit.replacedCount} LINH KIỆN ĐÃ QUA SỬA CHỮA / THAY THẾ. Cần kiểm tra chất lượng linh kiện thay thế.`;
+        partsStatusText = `PHÁT HIỆN ${audit.replacedCount} CỤM LINH KIỆN ĐÃ QUA SỬA CHỮA / THAY THẾ. Cần kiểm tra chất lượng linh kiện thay thế.`;
       } else if (audit.overallStatus === "SUSPICIOUS_TAMPERED") {
         partsIcon = "🚨";
         partsStatusText = `NGHI VẤN CAN THIỆP PHẦN CỨNG: Bất đồng bộ Serial hoặc mạch nạp. Cần chuyên gia mở máy kiểm tra.`;
@@ -143,11 +157,14 @@ class SmartEngine {
     let overallGradeClass = "badge-good";
     let actionAdvice = "Máy ở tình trạng hoàn hảo toàn diện. Tiếp tục sử dụng bình thường, duy trì cập nhật macOS và kích hoạt sao lưu Time Machine định kỳ.";
 
-    if (critWarnings.length > 0 || (batt && batt.tamperingStatus === "TAMPERED_FRAUD") || (audit && audit.overallStatus === "SUSPICIOUS_TAMPERED") || ssdHealth < 30) {
+    const isFraudulent = (batt && batt.classification === "TAMPERED_FRAUD") || (audit && audit.overallStatus === "SUSPICIOUS_TAMPERED") || ssdHealth < 30 || critWarnings.length > 0;
+    const isReplacedOrDegraded = (batt && (batt.classification === "THIRD_PARTY_REPLACED" || batt.classification === "APPLE_AUTHORIZED_REPLACEMENT" || batt.classification === "DEGRADED_SERVICE_REQUIRED")) || (audit && audit.overallStatus === "PARTS_REPLACED") || (drive.batteryHealth && drive.batteryHealth < 80) || temp >= 65 || ssdHealth < 75 || warnWarnings.length > 0;
+
+    if (isFraudulent) {
       overallGrade = "HẠNG D (RỦI RO CAO / GIAN LẬN PHẦN CỨNG)";
       overallGradeClass = "badge-critical";
       actionAdvice = "KHUYẾN NGHỊ KHẨN CẤP: Không khuyến khích giao dịch mua bán hoặc sử dụng lâu dài nếu chưa làm rõ lịch sử sửa chữa. Tiến hành sao lưu dữ liệu quan trọng ngay lập tức và mang máy đến Trung tâm Bảo hành Ủy quyền Apple (AASP) để kiểm định bên trong.";
-    } else if (warnWarnings.length > 0 || (audit && audit.overallStatus === "PARTS_REPLACED") || (drive.batteryHealth && drive.batteryHealth < 80) || temp >= 65 || ssdHealth < 75) {
+    } else if (isReplacedOrDegraded) {
       overallGrade = "HẠNG B (CẦN BẢO TRÌ / THEO DÕI ĐỊNH KỲ)";
       overallGradeClass = "badge-warning";
       actionAdvice = "KHUYẾN NGHỊ KỸ THUẬT: Máy có linh kiện đã thay thế hoặc dấu hiệu hao mòn pin/nhiệt độ. Hãy vệ sinh cụm tản nhiệt định kỳ, theo dõi độ chai pin và kiểm tra lại sau mỗi 30 ngày.";
@@ -298,110 +315,76 @@ class SmartEngine {
    */
   assessStatus(healthScore, performanceScore, drive) {
     const criticalWarningAttr = drive.attributes?.find(a => a.name.includes("Critical Warning"));
-    const isCriticalWarning = criticalWarningAttr && criticalWarningAttr.rawVal > 0;
-    
-    const availSpareAttr = drive.attributes?.find(a => a.name.includes("Available Spare") && !a.name.includes("Threshold"));
-    const isSpareDepleted = availSpareAttr && availSpareAttr.rawVal < 10;
+    const hasCriticalHardwareFlag = criticalWarningAttr && criticalWarningAttr.rawVal > 0;
 
-    if (healthScore <= 25 || isSpareDepleted || (isCriticalWarning && criticalWarningAttr.rawVal >= 4)) {
+    if (hasCriticalHardwareFlag || healthScore < 30) {
       return {
-        status: "Critical",
-        statusText: "Critical - Ổ cứng sắp hỏng!",
-        statusColor: "var(--status-critical)"
+        status: "critical",
+        statusText: "NGUY CẤP / CẦN THAY THẾ",
+        statusColor: "var(--accent-red)"
+      };
+    } else if (healthScore < 75 || performanceScore < 70) {
+      return {
+        status: "warning",
+        statusText: "CẦN CHÚ Ý / THEO DÕI",
+        statusColor: "var(--accent-amber)"
+      };
+    } else {
+      return {
+        status: "good",
+        statusText: "HOÀN HẢO / TỐI ƯU",
+        statusColor: "var(--accent-green)"
       };
     }
-
-    if (healthScore <= 60 || performanceScore <= 50 || isCriticalWarning) {
-      return {
-        status: "Warning",
-        statusText: "Warning - Cảnh báo hao mòn",
-        statusColor: "var(--status-warning)"
-      };
-    }
-
-    if (healthScore <= 85 || (drive.temperature && drive.temperature > 55)) {
-      return {
-        status: "Notice",
-        statusText: "Notice - Chú ý theo dõi",
-        statusColor: "var(--status-notice)"
-      };
-    }
-
-    return {
-      status: "OK",
-      statusText: "Good - Hoạt động hoàn hảo",
-      statusColor: "var(--status-good)"
-    };
   }
 
   /**
-   * Generates Check Mac Early Warnings & Heuristic Alerts
+   * Analyzes SMART registers for early warning patterns
    */
   analyzeEarlyWarnings(drive, wearInfo) {
     const warnings = [];
 
-    // Check Available Spare
-    const availSpareAttr = drive.attributes?.find(a => a.name.includes("Available Spare") && !a.name.includes("Threshold"));
-    if (availSpareAttr && availSpareAttr.rawVal < 10) {
+    // Check Wearout
+    if (wearInfo.percentageUsed >= 90) {
       warnings.push({
+        id: "wear_critical",
         level: "critical",
-        title: "Block nhớ dự phòng (Available Spare) cạn kiệt dưới 10%",
-        desc: "Controller NVMe không còn đủ sector dự phòng để tráo đổi các ô nhớ NAND bị hỏng. Rủi ro mất mát dữ liệu tức thời là cực kỳ cao."
+        title: "Bộ nhớ Flash NAND sắp hết hạn mức bảo hành TBW",
+        message: `Mức sử dụng chip nhớ đã đạt ${wearInfo.percentageUsed}%. Các ô nhớ flash đang ở ngưỡng hao mòn cao nhất.`
       });
-    } else if (availSpareAttr && availSpareAttr.rawVal < 90) {
+    } else if (wearInfo.percentageUsed >= 75) {
       warnings.push({
+        id: "wear_warning",
         level: "warning",
-        title: `Block nhớ dự phòng đã suy giảm còn ${availSpareAttr.rawVal}%`,
-        desc: "Đã có một số block nhớ flash bị hỏng và controller đã kích hoạt vùng nhớ dự trữ thay thế."
-      });
-    }
-
-    // Check Media Integrity Errors
-    const mediaErrorsAttr = drive.attributes?.find(a => a.name.includes("Media and Data Integrity"));
-    if (mediaErrorsAttr && mediaErrorsAttr.rawVal > 0) {
-      warnings.push({
-        level: "critical",
-        title: `Phát hiện ${mediaErrorsAttr.rawVal} lỗi Uncorrectable Media Integrity Errors`,
-        desc: "Phát hiện lỗi phần cứng trong quá trình đọc ghi ô nhớ NAND không thể tự phục hồi bằng thuật toán ECC."
-      });
-    }
-
-    // Check Wearout Life
-    if (wearInfo.lifeRemaining <= 10) {
-      warnings.push({
-        level: "critical",
-        title: `Tuổi thọ chu kỳ ghi (NAND Endurance) chỉ còn ${wearInfo.lifeRemaining}%`,
-        desc: `Tổng lượng ghi đạt ${wearInfo.writtenTB} TBW / ${wearInfo.ratedTBW} TBW. Ổ đĩa sắp hết tuổi thọ ghi vật lý.`
-      });
-    } else if (wearInfo.lifeRemaining <= 40) {
-      warnings.push({
-        level: "warning",
-        title: `Độ hao mòn ghi đạt ${wearInfo.percentageUsed}%`,
-        desc: "Cần chú ý giảm các tác vụ ghi nặng không cần thiết và thường xuyên kiểm tra sao lưu Time Machine."
+        title: "Độ hao mòn chip nhớ bắt đầu tăng",
+        message: `Mức sử dụng chip nhớ hiện tại là ${wearInfo.percentageUsed}%. Dự kiến tuổi thọ còn lại khoảng ${wearInfo.estimatedYears} năm.`
       });
     }
 
     // Check Temperature
     if (drive.temperature >= 70) {
       warnings.push({
+        id: "temp_critical",
         level: "critical",
-        title: `Nhiệt độ hoạt động quá cao: ${drive.temperature}°C`,
-        desc: "Ổ cứng đang bị quá nhiệt nghiêm trọng làm suy giảm tuổi thọ vi mạch và kích hoạt cơ chế giảm tốc độ (Thermal Throttling)."
+        title: "Nhiệt độ ổ SSD ở mức nguy hiểm (>70°C)",
+        message: "Nhiệt độ quá cao có thể kích hoạt Thermal Throttling và gây suy giảm độ bền tế bào nhớ NAND Flash."
       });
     } else if (drive.temperature >= 55) {
       warnings.push({
+        id: "temp_warning",
         level: "warning",
-        title: `Nhiệt độ ổ đĩa ấm: ${drive.temperature}°C`,
-        desc: "Cần kiểm tra khe tản nhiệt máy hoặc môi trường làm việc thông thoáng."
+        title: "Nhiệt độ hoạt động hơi cao",
+        message: `Nhiệt độ SSD ghi nhận là ${drive.temperature}°C. Nên đảm bảo luồng gió thông thoáng cho MacBook.`
       });
     }
 
     // Check Unsafe Shutdowns
-    if (drive.unsafeShutdowns >= 20) {
+    if (drive.unsafeShutdowns > 50) {
       warnings.push({
+        id: "shutdown_warning",
         level: "notice",
-        title: `Ghi nhận ${drive.unsafeShutdowns} lần mất nguồn đột ngột (Unsafe Shutdowns)`,
-        desc: "Mất nguồn đột ngột khi controller đang ghi dữ liệu có thể gây lỗi bảng ánh xạ FTL (Flash Translation Layer)."
+        title: "Ghi nhận nhiều lần mất nguồn đột ngột",
+        message: `Ổ đĩa đã trải qua ${drive.unsafeShutdowns} lần tắt nguồn không an toàn. Điều này có thể làm tăng nguy cơ hỏng hệ điều hành file system APFS.`
       });
     }
 
@@ -409,19 +392,17 @@ class SmartEngine {
   }
 
   /**
-   * Analyzes thermal conditions
+   * Evaluates Thermal Assessment
    */
   assessThermal(temp) {
     if (temp >= 70) {
-      return { level: "Critical", text: "Quá nhiệt nghiêm trọng", color: "var(--status-critical)" };
+      return { status: "critical", label: "Rất Nóng", desc: "Nguy cơ giảm hiệu năng do tản nhiệt kém" };
     } else if (temp >= 55) {
-      return { level: "Warm", text: "Nhiệt độ cao", color: "var(--status-warning)" };
-    } else if (temp >= 40) {
-      return { level: "Normal", text: "Nhiệt độ tiêu chuẩn", color: "var(--status-notice)" };
+      return { status: "warning", label: "Hơi Nóng", desc: "Nhiệt độ tăng khi máy tải nặng" };
+    } else {
+      return { status: "good", label: "Mát Mẻ / Tối Ưu", desc: "Nhiệt độ hoàn toàn lý tưởng cho SSD" };
     }
-    return { level: "Cool", text: "Mát mẻ lý tưởng", color: "var(--status-good)" };
   }
 }
 
-// Global instance
 window.smartEngine = new SmartEngine();

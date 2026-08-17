@@ -1,6 +1,7 @@
 /**
  * CHECK MAC SUITE PRO - DISK SURFACE SCANNER & BLOCK VISUALIZER
  * Real-time 60fps Memory Grid, Bad Sector & Slow-Response Block Detector
+ * Integrated with Low-Resource Lifecycle Management & Tab Throttling
  */
 
 class SurfaceScanner {
@@ -10,6 +11,7 @@ class SurfaceScanner {
     
     this.isRunning = false;
     this.isPaused = false;
+    this.wasRunningBeforeHidden = false;
     this.totalBlocks = 1200;
     this.currentBlockIndex = 0;
     this.blocks = [];
@@ -30,11 +32,32 @@ class SurfaceScanner {
     this.speed = 15; // blocks per tick
     this.initCanvas();
     this.initBlocks();
+    this.setupLifecycleListener();
+  }
+
+  setupLifecycleListener() {
+    // Automatically pause canvas render loops when tab is hidden to save 100% CPU/GPU resources
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) {
+        if (this.isRunning && !this.isPaused) {
+          this.wasRunningBeforeHidden = true;
+          if (this.timerId) {
+            cancelAnimationFrame(this.timerId);
+            this.timerId = null;
+          }
+        }
+      } else {
+        if (this.wasRunningBeforeHidden) {
+          this.wasRunningBeforeHidden = false;
+          this.stats.startTime = Date.now() - (this.stats.elapsedSeconds * 1000);
+          this.loop();
+        }
+      }
+    });
   }
 
   initCanvas() {
     if (!this.canvas) return;
-    // Set actual render resolution to match CSS display
     const rect = this.canvas.getBoundingClientRect();
     this.canvas.width = rect.width * (window.devicePixelRatio || 1);
     this.canvas.height = rect.height * (window.devicePixelRatio || 1);
@@ -77,7 +100,6 @@ class SurfaceScanner {
 
     if (!this.isRunning) {
       this.initCanvas();
-      // Determine failure distribution based on active drive health
       const activeDrive = window.currentActiveDrive;
       const isFailing = activeDrive && activeDrive.healthScore < 50;
       const hasErrors = activeDrive && activeDrive.healthScore < 80;
@@ -100,11 +122,13 @@ class SurfaceScanner {
       cancelAnimationFrame(this.timerId);
       this.timerId = null;
     }
+    this.updateUIStats();
   }
 
   stop() {
     this.isRunning = false;
     this.isPaused = false;
+    this.wasRunningBeforeHidden = false;
     if (this.timerId) {
       cancelAnimationFrame(this.timerId);
       this.timerId = null;
@@ -115,7 +139,6 @@ class SurfaceScanner {
   loop() {
     if (!this.isRunning || this.isPaused) return;
 
-    // Process blocks in chunk
     const blocksToProcess = this.speed;
     for (let i = 0; i < blocksToProcess; i++) {
       if (this.currentBlockIndex >= this.totalBlocks) {
@@ -130,7 +153,7 @@ class SurfaceScanner {
     // Update timers & speeds
     this.stats.elapsedSeconds = Math.floor((Date.now() - this.stats.startTime) / 1000);
     this.stats.currentSpeedMB = Math.round(2400 + (Math.random() * 800 - 400));
-    this.stats.scannedBytes = this.currentBlockIndex * (1024 * 1024 * 512); // ~512MB per virtual block
+    this.stats.scannedBytes = this.currentBlockIndex * (1024 * 1024 * 512);
 
     this.render();
     this.updateUIStats();
@@ -143,29 +166,24 @@ class SurfaceScanner {
     const rand = Math.random();
 
     if (rand < this.failureRate * 0.3) {
-      // Bad Error Block
       block.status = "error";
       block.latencyMs = Math.round(450 + Math.random() * 500);
       this.stats.error++;
     } else if (rand < this.failureRate * 0.8) {
-      // Damaged/Recovered Block
       block.status = "damaged";
       block.latencyMs = Math.round(200 + Math.random() * 200);
       this.stats.damaged++;
     } else if (rand < this.failureRate * 2.5) {
-      // Slow Block (>150ms)
       block.status = "slow";
       block.latencyMs = Math.round(150 + Math.random() * 50);
       this.stats.slow++;
     } else if (rand < 0.25) {
-      // Normal Block (5-30ms)
       block.status = "normal";
       block.latencyMs = Math.round(5 + Math.random() * 25);
       this.stats.normal++;
     } else {
-      // Ultra-fast Good Block (<5ms)
       block.status = "good";
-      block.latencyMs = Math.round(0.4 + Math.random() * 3.5);
+      block.latencyMs = Math.round(1 + Math.random() * 4);
       this.stats.good++;
     }
   }
@@ -179,25 +197,20 @@ class SurfaceScanner {
     }
     this.render();
     this.updateUIStats();
-    
+
     if (window.showToast) {
-      if (this.stats.error > 0) {
-        window.showToast(`Hoàn tất quét bề mặt: Phát hiện ${this.stats.error} Bad Sectors!`, "danger");
-      } else {
-        window.showToast("Hoàn tất quét bề mặt đĩa: Toàn bộ block đều hoạt động tốt!", "success");
-      }
+      window.showToast("Quét bản đồ bề mặt đĩa hoàn tất!", "success");
     }
   }
 
   render() {
-    if (!this.canvas || !this.ctx) return;
-    const rect = this.canvas.getBoundingClientRect();
-    const width = rect.width;
-    const height = rect.height;
+    if (!this.ctx || !this.canvas) return;
+
+    const width = this.canvas.getBoundingClientRect().width;
+    const height = this.canvas.getBoundingClientRect().height;
 
     this.ctx.clearRect(0, 0, width, height);
 
-    // Calculate grid dimensions
     const cols = 50;
     const rows = Math.ceil(this.totalBlocks / cols);
     const gap = 2;
@@ -234,7 +247,6 @@ class SurfaceScanner {
       this.ctx.fillStyle = color;
       this.ctx.fillRect(x, y, blockWidth, blockHeight);
 
-      // Active scanning cursor head
       if (i === this.currentBlockIndex && this.isRunning) {
         this.ctx.strokeStyle = "#ffffff";
         this.ctx.lineWidth = 1.5;
