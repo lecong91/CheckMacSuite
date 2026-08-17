@@ -243,32 +243,24 @@ body {
 .app-title {
   font-size: 1.25rem;
   font-weight: 700;
-  letter-spacing: -0.025em;
   color: var(--text-primary);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  margin: 0;
   user-select: none;
+  white-space: nowrap;
 }
 
-.app-title-main {
+.app-brand-name {
+  font-family: var(--font-family-system);
+  font-size: 1.28rem;
   font-weight: 700;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.028em;
   color: var(--text-primary);
-}
-
-.app-title-sub {
-  font-weight: 500;
-  color: var(--text-secondary);
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-medium);
-  padding: 1.5px 8px;
-  border-radius: var(--radius-sm);
-  font-size: 0.76rem;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  display: inline-flex;
+  align-items: center;
+  line-height: 1.2;
 }
 
 .app-badge-version {
