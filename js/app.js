@@ -51,6 +51,9 @@ async function checkNativeBackendAndInit() {
         connBadge.style.display = "inline-flex";
       }
 
+      const shutdownBtn = document.getElementById("shutdownServerBtn");
+      if (shutdownBtn) shutdownBtn.style.display = "inline-flex";
+
       // Fetch Real System Info & Physical Drives
       await loadRealMacHardware();
       return;
@@ -1076,6 +1079,33 @@ function initEventListeners() {
   if (runSelfTestBtn) {
     runSelfTestBtn.addEventListener("click", () => {
       runQuickSelfTest();
+    });
+  }
+
+  // Shutdown Server Action (Free 100% RAM & CPU)
+  const shutdownBtn = document.getElementById("shutdownServerBtn");
+  if (shutdownBtn) {
+    shutdownBtn.addEventListener("click", async () => {
+      const userOk = confirm("🛑 BẠN MUỐN TẮT MÁY CHỦ LOCALHOST ĐỂ TIẾT KIỆM 100% TÀI NGUYÊN?\n\nToàn bộ dữ liệu kiểm định phần cứng của máy đã được nạp đầy đủ vào bộ nhớ trình duyệt. Sau khi tắt, bạn vẫn có thể xem tất cả các tab, chạy test màn hình, xem thông số và xuất báo cáo hoàn toàn bình thường mà không tốn CPU/RAM.");
+      if (!userOk) return;
+
+      try {
+        shutdownBtn.disabled = true;
+        shutdownBtn.innerHTML = `<span>⏳ Đang tắt máy chủ...</span>`;
+        const res = await fetch("/api/shutdown");
+        const data = await res.json();
+        showToast(data.message || "Máy chủ Localhost đã tắt thành công. 0% CPU & RAM!", "success");
+      } catch (e) {
+        showToast("Máy chủ Localhost đã tắt hoàn toàn!", "info");
+      } finally {
+        const connBadge = document.getElementById("nativeEngineBadge");
+        if (connBadge) {
+          connBadge.innerHTML = `<span>💾 Dữ Liệu Đã Lưu • Localhost Đã Tắt (0% CPU)</span>`;
+          connBadge.className = "engine-badge badge-standalone";
+        }
+        shutdownBtn.style.display = "none";
+        window.isNativeEngineConnected = false;
+      }
     });
   }
 }

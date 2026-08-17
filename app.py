@@ -726,8 +726,17 @@ class MacHardwareScanner:
         }
 
     @classmethod
-    def _get_camera_info(cls):
-        """Queries camera hardware information."""
+    def _get_camera_info(cls, sys_info=None):
+        """Queries camera hardware information with intelligent form-factor detection."""
+        if sys_info is None:
+            sys_info = cls.get_system_hardware_info()
+            
+        model_name = sys_info.get("macModel", "").lower()
+        model_id = sys_info.get("modelIdentifier", "").lower()
+        is_laptop = sys_info.get("isLaptop", False)
+        is_imac = "imac" in model_name or "imac" in model_id
+        is_desktop_headless = "mini" in model_name or "studio" in model_name or "pro" in model_name or ("mac" in model_id and not is_laptop and not is_imac)
+
         try:
             res = subprocess.run(["system_profiler", "SPCameraDataType", "-json"], capture_output=True, text=True, timeout=4)
             if res.returncode == 0:
@@ -735,15 +744,99 @@ class MacHardwareScanner:
                 cams = data.get("SPCameraDataType", [])
                 if cams:
                     c = cams[0]
-                    return {
-                        "present": True,
-                        "name": c.get("_name", "FaceTime HD Camera"),
-                        "serial": c.get("spcamera_unique-id", "Apple_Camera_ISP"),
-                        "resolution": "1080p FaceTime HD" if "1080" in str(c) else "FaceTime HD Camera"
-                    }
+                    c_name = c.get("_name", "Camera")
+                    c_serial = c.get("spcamera_unique-id", "Apple_Camera_ISP")
+                    
+                    if "studio display" in c_name.lower():
+                        return {
+                            "present": True,
+                            "isBuiltIn": False,
+                            "type": "STUDIO_DISPLAY",
+                            "name": "Apple Studio Display 12MP Camera",
+                            "serial": c_serial,
+                            "resolution": "12MP Ultra Wide with Center Stage",
+                            "status": "GENUINE",
+                            "statusText": "Camera Apple Studio Display",
+                            "details": f"{c_name} | Apple Center Stage & Desk View"
+                        }
+                    elif "iphone" in c_name.lower():
+                        return {
+                            "present": True,
+                            "isBuiltIn": False,
+                            "type": "CONTINUITY",
+                            "name": "iPhone Continuity Camera",
+                            "serial": c_serial,
+                            "resolution": "iPhone High-Res Wireless Camera",
+                            "status": "GENUINE",
+                            "statusText": "Camera không dây qua iPhone",
+                            "details": f"{c_name} | Apple Continuity Camera"
+                        }
+                    elif any(k in c_name.lower() for k in ["logitech", "razer", "usb", "webcam", "c920", "streamcam"]):
+                        return {
+                            "present": True,
+                            "isBuiltIn": False,
+                            "type": "EXTERNAL_USB",
+                            "name": f"Webcam ngoài ({c_name})",
+                            "serial": c_serial,
+                            "resolution": "External USB Camera",
+                            "status": "EXTERNAL_CONNECTED",
+                            "statusText": "Webcam ngoài cắm cổng USB",
+                            "details": f"{c_name} | Kết nối qua cổng USB/Thunderbolt"
+                        }
+                    else:
+                        # Built-in FaceTime Camera (MacBook / iMac)
+                        res_str = "1080p FaceTime HD" if "1080" in str(c) or "1080" in c_name else ("12MP Center Stage" if "12" in c_name else "FaceTime HD Camera")
+                        return {
+                            "present": True,
+                            "isBuiltIn": True,
+                            "type": "BUILTIN_FACETIME",
+                            "name": c_name,
+                            "serial": c_serial,
+                            "resolution": res_str,
+                            "status": "GENUINE",
+                            "statusText": "Zin Apple FaceTime Camera",
+                            "details": f"{c_name} | Apple ISP Image Processing"
+                        }
         except Exception:
             pass
-        return {"present": True, "name": "FaceTime HD Camera", "serial": "Apple ISP Integrated", "resolution": "1080p FaceTime HD"}
+
+        # If NO camera was detected on system:
+        if is_desktop_headless:
+            return {
+                "present": False,
+                "isBuiltIn": False,
+                "type": "DESKTOP_HEADLESS",
+                "name": "Không có camera tích hợp (Mac mini / Mac Studio / Mac Pro)",
+                "serial": "N/A - Direct Desktop",
+                "resolution": "N/A (Không trang bị webcam)",
+                "status": "DESKTOP_NA",
+                "statusText": "Không tích hợp Camera (Chuẩn xuất xưởng Mac mini)",
+                "details": "Thiết bị để bàn Mac mini không có webcam tích hợp. Sử dụng Continuity Camera hoặc Webcam ngoài khi cần."
+            }
+        elif is_laptop or is_imac:
+            return {
+                "present": False,
+                "isBuiltIn": True,
+                "type": "MISSING_BUILTIN",
+                "name": "Không tìm thấy Camera FaceTime tích hợp",
+                "serial": "N/A - Missing Hardware",
+                "resolution": "N/A",
+                "status": "HARDWARE_ERROR",
+                "statusText": "Lỗi phần cứng Camera FaceTime (Mất kết nối cáp)",
+                "details": "Dòng MacBook yêu cầu có Camera FaceTime tích hợp. Cần kiểm tra cáp màn hình hoặc vi mạch ISP."
+            }
+        else:
+            return {
+                "present": False,
+                "isBuiltIn": False,
+                "type": "DESKTOP_HEADLESS",
+                "name": "Không có camera tích hợp",
+                "serial": "N/A",
+                "resolution": "N/A",
+                "status": "DESKTOP_NA",
+                "statusText": "Không trang bị webcam",
+                "details": "Thiết bị để bàn không có camera tích hợp."
+            }
 
     @classmethod
     def _get_audio_info(cls):
@@ -974,17 +1067,21 @@ class MacHardwareScanner:
             "isOriginal": is_disp_orig
         })
         
-        # 5. Camera FaceTime & Cảm biến ISP
-        cam_info = cls._get_camera_info()
+        # 5. Camera FaceTime & Cảm biến ISP (Intelligent Peripheral & Desktop Detection)
+        cam_info = cls._get_camera_info(sys_info)
+        cam_status = cam_info.get("status", "GENUINE")
+        if cam_status == "HARDWARE_ERROR":
+            suspicious_count += 1
+            
         components.append({
             "id": "camera",
             "name": "Camera FaceTime & Cảm biến",
-            "part": cam_info.get("resolution", "1080p FaceTime HD Camera"),
+            "part": cam_info.get("name", "FaceTime HD Camera"),
             "serial": cam_info.get("serial", "Apple ISP Integrated"),
-            "status": "GENUINE",
-            "statusText": "Zin Apple Camera",
-            "details": f"{cam_info.get('name')} | Apple ISP Image Processing",
-            "isOriginal": True
+            "status": cam_status,
+            "statusText": cam_info.get("statusText", "Zin Apple Camera"),
+            "details": cam_info.get("details", "Apple ISP Image Processing"),
+            "isOriginal": cam_status != "HARDWARE_ERROR"
         })
         
         # 6. Âm thanh & Micro (Audio Subsystem)
@@ -1004,11 +1101,11 @@ class MacHardwareScanner:
         components.append({
             "id": "input_biometrics",
             "name": "Bàn phím, Trackpad & Touch ID",
-            "part": "Magic Keyboard & Force Touch Trackpad",
+            "part": "Magic Keyboard & Force Touch Trackpad" if sys_info.get("isLaptop") else "Apple Magic Keyboard / External Input",
             "serial": "Apple Multitouch SPI Controller",
             "status": "GENUINE",
             "statusText": "Zin Apple Hardware",
-            "details": "Touch ID: Sẵn sàng | Force Touch: Taptic Engine Haptic Feedback",
+            "details": "Touch ID: Sẵn sàng | Force Touch: Taptic Engine Haptic Feedback" if sys_info.get("isLaptop") else "Hỗ trợ kết nối Magic Keyboard / Magic Mouse",
             "isOriginal": True
         })
         
@@ -1019,7 +1116,7 @@ class MacHardwareScanner:
             verdict_badge = "REPLACED"
         elif suspicious_count > 0:
             overall_status = "SUSPICIOUS_TAMPERED"
-            overall_verdict = "⚠️ NGHI VẤN CAN THIỆP: Phát hiện dấu hiệu kích pin hoặc can thiệp vi mạch"
+            overall_verdict = "⚠️ NGHI VẤN CAN THIỆP: Phát hiện dấu hiệu kích pin hoặc lỗi kết nối linh kiện"
             verdict_badge = "WARNING"
         else:
             overall_status = "ALL_GENUINE_ORIGINAL"
@@ -1098,6 +1195,23 @@ class CheckMacAPIHandler(http.server.SimpleHTTPRequestHandler):
             self.send_json_response(result)
             return
 
+        elif path == "/api/shutdown":
+            self.send_json_response({
+                "success": True,
+                "message": "Máy chủ Localhost đã tắt hoàn toàn. Toàn bộ tài nguyên CPU/RAM đã được giải phóng 100%."
+            })
+            
+            def do_shutdown():
+                time.sleep(0.4)
+                print("\n" + "=" * 75)
+                print("🛑 CHECK MAC SUITE PRO - ĐÃ TẮT MÁY CHỦ LOCALHOST THÀNH CÔNG")
+                print("💡 Toàn bộ tài nguyên bộ nhớ & CPU đã được giải phóng.")
+                print("=" * 75 + "\n")
+                os._exit(0)
+
+            threading.Thread(target=do_shutdown, daemon=True).start()
+            return
+
         # Serve static frontend files
         return super().do_GET()
 
@@ -1108,6 +1222,23 @@ class CheckMacAPIHandler(http.server.SimpleHTTPRequestHandler):
         if path == "/api/benchmark":
             result = MacHardwareScanner.run_live_disk_benchmark(64)
             self.send_json_response(result)
+            return
+
+        elif path == "/api/shutdown":
+            self.send_json_response({
+                "success": True,
+                "message": "Máy chủ Localhost đã tắt hoàn toàn. Toàn bộ tài nguyên CPU/RAM đã được giải phóng 100%."
+            })
+            
+            def do_shutdown():
+                time.sleep(0.4)
+                print("\n" + "=" * 75)
+                print("🛑 CHECK MAC SUITE PRO - ĐÃ TẮT MÁY CHỦ LOCALHOST THÀNH CÔNG")
+                print("💡 Toàn bộ tài nguyên bộ nhớ & CPU đã được giải phóng.")
+                print("=" * 75 + "\n")
+                os._exit(0)
+
+            threading.Thread(target=do_shutdown, daemon=True).start()
             return
 
         elif path == "/api/install-smartctl":
@@ -1157,7 +1288,8 @@ def start_server():
             smartctl_path = MacHardwareScanner.find_smartctl()
             print(f"🔍 S.M.A.R.T Engine: {'Found at ' + smartctl_path if smartctl_path else 'Fallback Mode (IORegistry / system_profiler)'}")
             print("=" * 75)
-            print("Nhấn Ctrl + C để dừng ứng dụng bất kỳ lúc nào.\n")
+            print("💡 Mẹo: Bạn có thể nhấn nút '🛑 Tắt Server Localhost' trên giao diện web")
+            print("   hoặc nhấn Ctrl + C tại đây để giải phóng hoàn toàn 100% tài nguyên CPU/RAM.\n")
 
             # Auto-open browser
             def open_browser():

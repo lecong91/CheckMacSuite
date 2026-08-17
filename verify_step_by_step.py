@@ -2,7 +2,8 @@
 """
 ================================================================================
 CHECK MAC SUITE PRO - 11-STEP EXHAUSTIVE QUALITY ASSURANCE AUDIT
-Verifying Battery Forensics (Replaced/Zin/Fraud), Low-Resource Caching, NVMe & SATA SSD Precision
+Verifying Battery Forensics (Replaced/Zin/Fraud), Intelligent Desktop Camera Detection,
+Low-Resource Localhost Shutdown & Caching, NVMe & SATA SSD Precision
 ================================================================================
 """
 
@@ -237,9 +238,9 @@ def run_exhaustive_verification():
         test_steps.append(("Bước 5: 8-Layer Battery Forensics & Replaced Detection", False, str(e)))
 
     # --------------------------------------------------------------------------
-    # STEP 6: Genuine Apple Parts & Service History Audit
+    # STEP 6: Genuine Apple Parts, Camera & Desktop Form-Factor Audit
     # --------------------------------------------------------------------------
-    print("\n[BƯỚC 6/11] Kiểm định Giám định 7 Cụm Linh kiện Sửa chữa (Parts Audit)...")
+    print("\n[BƯỚC 6/11] Kiểm định Giám định 7 Cụm Linh kiện & Nhận diện Camera Chuẩn Desktop...")
     try:
         audit = MacHardwareScanner.get_hardware_components_audit()
         assert "overallStatus" in audit
@@ -247,10 +248,20 @@ def run_exhaustive_verification():
         assert len(audit["components"]) == 7, f"Số linh kiện phải là 7, nhận {len(audit['components'])}"
         print(f"  -> Kết luận Tổng thể: {audit['overallVerdict']}")
         for c in audit["components"]:
-            print(f"     - [{c['status']}] {c['name']}: {c['statusText']}")
-        test_steps.append(("Bước 6: Genuine Apple Parts & Service History", True, "PASS"))
+            print(f"     - [{c['status']}] {c['name']}: {c['statusText']} ({c['details']})")
+
+        # Test Desktop Mac (Mac mini) Camera Introspection
+        mac_mini_sys = {"macModel": "Mac mini", "modelIdentifier": "Mac16,10", "isLaptop": False}
+        cam_mini = MacHardwareScanner._get_camera_info(mac_mini_sys)
+        assert cam_mini["status"] in ["DESKTOP_NA", "EXTERNAL_CONNECTED", "GENUINE"], f"Mac mini camera status unexpected: {cam_mini['status']}"
+        if not cam_mini["present"]:
+            assert cam_mini["status"] == "DESKTOP_NA"
+            assert "Không tích hợp Camera" in cam_mini["statusText"] or "Mac mini" in cam_mini["statusText"]
+            print(f"  -> [Test Camera Mac mini]: ✅ PASS (Nhận diện chính xác: {cam_mini['statusText']})")
+
+        test_steps.append(("Bước 6: Genuine Apple Parts & Desktop Camera Introspection", True, "PASS"))
     except Exception as e:
-        test_steps.append(("Bước 6: Genuine Apple Parts & Service History", False, str(e)))
+        test_steps.append(("Bước 6: Genuine Apple Parts & Desktop Camera Introspection", False, str(e)))
 
     # --------------------------------------------------------------------------
     # STEP 7: Detailed Display Quality & Panel Diagnostics
@@ -394,7 +405,7 @@ def run_exhaustive_verification():
             "btnExportTxt", "btnExportJson",
             "batteryVerdictBanner", "batteryVerdictTitle", "batteryVerdictDesc", "battCycleCountVal", "battSSDHoursVal", "battCellDiffVal", "batteryCellGrid",
             "auditVerdictBanner", "auditVerdictTitle", "auditVerdictDesc", "auditVerdictBadge", "componentsAuditGrid",
-            "dispPanelBadge", "dispResolution", "dispRefreshRate", "screenTestOverlay"
+            "dispPanelBadge", "dispResolution", "dispRefreshRate", "screenTestOverlay", "shutdownServerBtn"
         ]
 
         missing_ids = [id_name for id_name in required_dom_ids if f'id="{id_name}"' not in html_content]
@@ -418,7 +429,7 @@ def run_exhaustive_verification():
     print("=" * 85)
 
     if all_passed:
-        print("🎉 TOÀN BỘ 11/11 HẠNG MỤC KIỂM ĐỊNH ĐỀU ĐẠT 100% CHÍNH XÁC VÀ HOÀN HẢO!")
+        print("🎉 TOÀN BỘ 11/11 HẠNG MỤC KIỂM ĐỊNH ĐỀU ĐẠT 100% CHÍNH XAC VÀ HOÀN HẢO!")
     else:
         print("🚨 CÓ HẠNG MỤC KHÔNG ĐẠT, VUI LÒNG KIỂM TRA LẠI LOG CHI TIẾT!")
     print("=" * 85)
