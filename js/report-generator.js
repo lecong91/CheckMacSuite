@@ -63,10 +63,13 @@ Status Assessment:       ${drive.statusText}
 Drive Temperature:       ${drive.temperature} °C
 
 === SSD LIFESPAN & WEAR LEVEL FORECAST ===
-SSD Lifetime Remaining:  ${drive.wearInfo?.lifeRemaining || 100}%
-Percentage Used:         ${drive.wearInfo?.percentageUsed || 0}%
+SSD Lifetime Remaining:  ${typeof drive.wearInfo?.lifeRemaining === 'number' ? drive.wearInfo.lifeRemaining.toFixed(2) : drive.wearInfo?.lifeRemaining || 100}%
+Percentage Used:         ${typeof drive.wearInfo?.percentageUsed === 'number' ? drive.wearInfo.percentageUsed.toFixed(2) : drive.wearInfo?.percentageUsed || 0}%
 Data Units Written:      ${drive.wearInfo?.writtenTB || 0} TB (Rated Limit: ${drive.ratedTBW || 600} TBW)
 Data Units Read:         ${drive.wearInfo?.readTB || 0} TB
+Read / Write Ratio:      ${drive.wearInfo?.readWriteRatio || 1.0}x (TBR / TBW)
+Daily Write Pace:        ${drive.wearInfo?.dailyWriteGB || 0} GB/day
+Read Disturb Risk:       ${drive.wearInfo?.readDisturbRisk || "Thấp (Tối ưu)"}
 Power On Hours:          ${drive.powerOnHours || 0} hours
 Power Cycles:            ${drive.powerCycles || 0}
 Unsafe Shutdowns:        ${drive.unsafeShutdowns || 0}

@@ -99,11 +99,15 @@
 
       <div class="hero-stats-pills">
         <div class="stat-pill">
-          <div class="stat-pill-label">Dữ liệu đã ghi</div>
+          <div class="stat-pill-label">Đã Ghi (TBW)</div>
           <div id="statTBWWritten" class="stat-pill-value">4.85 TB</div>
         </div>
         <div class="stat-pill">
-          <div class="stat-pill-label">Định mức chịu tải</div>
+          <div class="stat-pill-label">Đã Đọc (TBR)</div>
+          <div id="statTBRRead" class="stat-pill-value">8.24 TB</div>
+        </div>
+        <div class="stat-pill">
+          <div class="stat-pill-label">Định mức TBW</div>
           <div id="statTBWRated" class="stat-pill-value">600 TBW</div>
         </div>
       </div>
@@ -229,7 +233,13 @@
               <div class="benchmark-card">
                 <div class="benchmark-card-title">Tốc độ ghi trung bình</div>
                 <div id="statDailyWrite" class="benchmark-card-num" style="font-size: 1.3rem;">7.5 GB/ngày</div>
-                <div class="benchmark-card-unit">Tốc độ tải dữ liệu</div>
+                <div class="benchmark-card-unit">Tốc độ tải dữ liệu Ghi</div>
+              </div>
+
+              <div class="benchmark-card">
+                <div class="benchmark-card-title">Tỉ lệ Đọc / Ghi (Ratio)</div>
+                <div id="statReadWriteRatio" class="benchmark-card-num" style="font-size: 1.3rem;">1.70x</div>
+                <div class="benchmark-card-unit">TBR / TBW Workload</div>
               </div>
 
               <div class="benchmark-card">
@@ -242,12 +252,6 @@
                 <div class="benchmark-card-title">Mất nguồn đột ngột</div>
                 <div id="statUnsafeShutdowns" class="benchmark-card-num" style="font-size: 1.3rem;">0 lần</div>
                 <div class="benchmark-card-unit">Unsafe Shutdowns</div>
-              </div>
-
-              <div class="benchmark-card">
-                <div class="benchmark-card-title">Lỗi Toàn vẹn (ECC)</div>
-                <div id="statMediaErrors" class="benchmark-card-num" style="font-size: 1.3rem;">0</div>
-                <div class="benchmark-card-unit">Media Errors</div>
               </div>
             </div>
           </div>
@@ -348,6 +352,25 @@
 
         <div id="failureWarningsList" class="risk-factors-list">
           <!-- Dynamically injected -->
+        </div>
+      </div>
+
+      <!-- Dual Read & Write Physical Endurance Analysis Card -->
+      <div class="card" style="margin-top: 20px;">
+        <div class="card-header">
+          <h3 class="card-title"><span>🔬</span> Cơ Chế Khoa Học Đánh Giá Độ Bền SSD: Thông Số Ghi (TBW) vs Thông Số Đọc (TBR)</h3>
+        </div>
+        <div style="padding: 18px 22px; font-size: 0.92rem; line-height: 1.7; color: var(--text-secondary);">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; margin-bottom: 12px;">
+            <div style="background: var(--bg-tertiary); padding: 16px; border-radius: var(--radius-md); border-left: 4px solid var(--accent-blue);">
+              <strong style="color: var(--text-primary); font-size: 1rem; display: flex; align-items: center; gap: 8px;">✍️ Thông Số Ghi (TBW / P-E Cycles) - Tiêu Hao Vật Lý</strong>
+              <p style="margin-top: 8px;">Quyết định <strong>100% độ hao mòn vật lý</strong> của chip nhớ NAND Flash. Mỗi chu kỳ Ghi/Xóa (Program/Erase) làm bẫy electron vào lớp điện môi cách điện oxit cổng (tunnel oxide), làm mòn dần khả năng giữ điện tích của cell nhớ. Định mức xuất xưởng (TBW Rated) là giới hạn bảo hành và độ bền chuẩn JEDEC / Apple.</p>
+            </div>
+            <div style="background: var(--bg-tertiary); padding: 16px; border-radius: var(--radius-md); border-left: 4px solid var(--accent-green);">
+              <strong style="color: var(--text-primary); font-size: 1rem; display: flex; align-items: center; gap: 8px;">📖 Thông Số Đọc (TBR / Read Disturb) - Giám Sát Hành Vi</strong>
+              <p style="margin-top: 8px;">Lệnh Đọc <strong>KHÔNG làm mòn vật lý P/E cycle</strong>, nhưng hệ thống phân tích cả 2 thông số để: (1) Tính <strong>Tỉ lệ Đọc/Ghi (Read/Write Ratio)</strong> nhận diện tác vụ Swap/Video; (2) Giám sát rủi ro <strong>Read Disturb</strong> khi cell tĩnh bị đọc liên tục khiến Controller phải tự động kích hoạt Read Scrubbing ngầm; (3) Tính tốc độ hao mòn theo thời gian thực.</p>
+            </div>
+          </div>
         </div>
       </div>
     </section>

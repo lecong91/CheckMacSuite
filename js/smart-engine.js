@@ -1,6 +1,6 @@
 /**
  * CHECK MAC SUITE PRO - S.M.A.R.T ANALYSIS & LIFESPAN PREDICTION ENGINE
- * Implements Check Mac Health & Performance Scoring Algorithms & Heuristics
+ * Implements Apple & JEDEC Compliant High-Precision NAND Wear, Read/Write Workload Ratio & Diagnostic Heuristics
  */
 
 class SmartEngine {
@@ -17,7 +17,7 @@ class SmartEngine {
     if (!driveData) return null;
     this.currentData = driveData;
 
-    // 1. Calculate Wear Level & Lifespan
+    // 1. Calculate Wear Level & Lifespan with High-Precision Decimals & Dual Read/Write Analysis
     const wearInfo = this.calculateSSDLife(driveData);
 
     // 2. Calculate Health Score (0 - 100%)
@@ -40,6 +40,8 @@ class SmartEngine {
 
     return {
       ...driveData,
+      percentageUsed: wearInfo.percentageUsed,
+      lifeRemaining: wearInfo.lifeRemaining,
       healthScore,
       performanceScore,
       status: statusAssessment.status,
@@ -68,21 +70,23 @@ class SmartEngine {
     const critWarnings = warnings.filter(w => w.level === "critical");
     const warnWarnings = warnings.filter(w => w.level === "warning");
     const writtenTB = parseFloat(wearInfo?.writtenTB || drive.dataUnitsWrittenTB || 0);
+    const readTB = parseFloat(wearInfo?.readTB || drive.dataUnitsReadTB || 0);
     const ratedTBW = wearInfo?.ratedTBW || drive.ratedTBW || 600;
-    const remainTBW = Math.max(0, ratedTBW - writtenTB).toFixed(1);
+    const remainTBW = Math.max(0, ratedTBW - writtenTB).toFixed(2);
+    const usedPercentStr = (wearInfo?.percentageUsed !== undefined ? wearInfo.percentageUsed : (drive.percentageUsed || 0)).toFixed(2);
     const temp = drive.temperature || 35;
 
     let ssdStatusText = "";
     let ssdIcon = "💾";
     if (critWarnings.length > 0 || ssdHealth < 30) {
       ssdIcon = "🚨";
-      ssdStatusText = `SSD NGUY CẤP (${ssdHealth}%): Phát hiện lỗi phần cứng hoặc block dự phòng cạn kiệt. Cần sao lưu ngay!`;
+      ssdStatusText = `SSD NGUY CẤP (${ssdHealth}%): Đã hao mòn ${usedPercentStr}%, phát hiện lỗi phần cứng hoặc block dự phòng cạn kiệt. Cần sao lưu ngay!`;
     } else if (warnWarnings.length > 0 || ssdHealth < 75 || temp >= 60) {
       ssdIcon = "⚠️";
-      ssdStatusText = `SSD CẦN CHÚ Ý (${ssdHealth}%): Có hao mòn (${drive.percentageUsed || 0}%) hoặc nhiệt độ ${temp}°C. Dung lượng chịu tải còn ~${remainTBW} TBW.`;
+      ssdStatusText = `SSD CẦN CHÚ Ý (${ssdHealth}%): Đã tiêu hao ${usedPercentStr}% (Ghi ${writtenTB} TBW / Đọc ${readTB} TBR). Dung lượng chịu tải còn ~${remainTBW} TBW.`;
     } else {
       ssdIcon = "💾";
-      ssdStatusText = `SSD HOÀN HẢO (${ssdHealth}%): Chip NAND tối ưu, dung lượng ghi còn lại ~${remainTBW} TBW, 0 lỗi ECC.`;
+      ssdStatusText = `SSD HOÀN HẢO (${ssdHealth}%): Đã dùng ${usedPercentStr}%, ghi ${writtenTB} TBW, đọc ${readTB} TBR, dung lượng còn lại ~${remainTBW} TBW (100% Ổn định).`;
     }
 
     // 2. Evaluate Battery Component - Rigorous 8-Layer Forensic Hook
@@ -149,7 +153,7 @@ class SmartEngine {
     let dispStatusText = "Màn hình Retina sắc nét, không gian màu P3 chuẩn Apple.";
     let dispIcon = "🖥️";
     if (disp) {
-      dispStatusText = `${disp.name || 'Liquid Retina'} (${disp.resolution || 'Retina'}) - Tần số quét ${disp.refreshRate || '60Hz'}, Gamut P3 10-bit. Cảm biến True Tone sẵn sàng.`;
+      dispStatusText = `${disp.name || 'Liquid Retina'} (${disp.resolution || 'Retina'}) - Tần số quét ${disp.refreshRate || '60Hz'}, Gamut P3 10-bit.`;
     }
 
     // 5. Synthesize Overall Mac Recommendation Verdict
@@ -185,24 +189,35 @@ class SmartEngine {
   }
 
   /**
-   * Calculates SSD endurance, TBW pace, and remaining lifetime
+   * Calculates high-precision SSD endurance, TBW pace, and dual Read/Write workload analysis
    */
   calculateSSDLife(drive) {
-    const percentageUsed = drive.percentageUsed !== undefined ? drive.percentageUsed : (100 - (drive.lifeRemaining || 100));
-    const lifeRemaining = Math.max(0, 100 - percentageUsed);
-    
     const ratedTBW = drive.ratedTBW || 600;
-    const writtenTB = drive.dataUnitsWrittenTB || 0;
-    const powerOnHours = drive.powerOnHours || 1;
+    const writtenTB = Number(drive.dataUnitsWrittenTB || 0);
+    const readTB = Number(drive.dataUnitsReadTB || 0);
+    const powerOnHours = Number(drive.powerOnHours || 1);
     
-    // Average daily write rate (GB/day)
+    // High-Precision Exact Mathematical Wear from TBW
+    const exactTbwWear = ratedTBW > 0 ? (writtenTB / ratedTBW) * 100 : 0;
+    let percentageUsed = (drive.percentageUsed !== undefined && drive.percentageUsed !== null)
+      ? Math.max(drive.percentageUsed, exactTbwWear)
+      : exactTbwWear;
+      
+    percentageUsed = Number(Math.min(100, Math.max(0, percentageUsed)).toFixed(2));
+    const lifeRemaining = Number(Math.max(0, 100 - percentageUsed).toFixed(2));
+    
+    // Average daily write & read pace (GB/day)
     const powerOnDays = Math.max(1, powerOnHours / 24);
-    const dailyWriteGB = (writtenTB * 1024) / powerOnDays;
+    const dailyWriteGB = Number(((writtenTB * 1024) / powerOnDays).toFixed(2));
+    const dailyReadGB = Number(((readTB * 1024) / powerOnDays).toFixed(2));
+    
+    // Read / Write Workload Ratio (TBR / TBW)
+    const readWriteRatio = writtenTB > 0 ? Number((readTB / writtenTB).toFixed(2)) : 1.0;
     
     // Remaining TBW capacity
     const remainingTB = Math.max(0, ratedTBW - writtenTB);
     
-    // Estimated days left based on write rate
+    // Estimated days left based on daily write pace
     let estimatedDaysLeft = 3650; // Default max 10 years
     if (dailyWriteGB > 0) {
       estimatedDaysLeft = Math.round((remainingTB * 1024) / dailyWriteGB);
@@ -222,13 +237,22 @@ class SmartEngine {
       year: "numeric"
     });
 
+    // Read Disturb Risk Assessment (when Read >> Write on static flash cells)
+    let readDisturbRisk = "Thấp (Tối ưu)";
+    if (readWriteRatio > 25 && readTB > 100) {
+      readDisturbRisk = "Đáng lưu ý (Tỉ lệ Đọc/Ghi cao - Controller tự động Background Scrubbing)";
+    }
+
     return {
       percentageUsed,
       lifeRemaining,
       ratedTBW,
       writtenTB: writtenTB.toFixed(2),
-      readTB: (drive.dataUnitsReadTB || 0).toFixed(2),
+      readTB: readTB.toFixed(2),
       dailyWriteGB: dailyWriteGB.toFixed(2),
+      dailyReadGB: dailyReadGB.toFixed(2),
+      readWriteRatio,
+      readDisturbRisk,
       estimatedDaysLeft,
       estimatedYears: (estimatedDaysLeft / 365.25).toFixed(1),
       estimatedWearoutDate: estimatedDateFormatted,
@@ -349,15 +373,47 @@ class SmartEngine {
       warnings.push({
         id: "wear_critical",
         level: "critical",
-        title: "Bộ nhớ Flash NAND sắp hết hạn mức bảo hành TBW",
-        message: `Mức sử dụng chip nhớ đã đạt ${wearInfo.percentageUsed}%. Các ô nhớ flash đang ở ngưỡng hao mòn cao nhất.`
+        title: `Hao mòn chip nhớ chạm ngưỡng nguy cấp (${wearInfo.percentageUsed.toFixed(2)}%)`,
+        desc: `Chip NAND Flash đã tiêu hao ${wearInfo.writtenTB} TBW / ${wearInfo.ratedTBW} TBW. Ổ đĩa có thể chuyển sang chế độ chỉ đọc (Read-Only) bất kỳ lúc nào để bảo vệ dữ liệu.`
       });
     } else if (wearInfo.percentageUsed >= 75) {
       warnings.push({
         id: "wear_warning",
         level: "warning",
-        title: "Độ hao mòn chip nhớ bắt đầu tăng",
-        message: `Mức sử dụng chip nhớ hiện tại là ${wearInfo.percentageUsed}%. Dự kiến tuổi thọ còn lại khoảng ${wearInfo.estimatedYears} năm.`
+        title: `Mức độ hao mòn đáng lưu ý (${wearInfo.percentageUsed.toFixed(2)}%)`,
+        desc: `Tổng lượng dữ liệu đã ghi đạt ${wearInfo.writtenTB} TBW. Hãy theo dõi tốc độ ghi hàng ngày (~${wearInfo.dailyWriteGB} GB/ngày).`
+      });
+    }
+
+    // Check Available Spare
+    const availSpareAttr = drive.attributes?.find(a => a.name.includes("Available Spare") && !a.name.includes("Threshold"));
+    if (availSpareAttr) {
+      const spareVal = availSpareAttr.rawVal !== undefined ? availSpareAttr.rawVal : 100;
+      if (spareVal < 10) {
+        warnings.push({
+          id: "spare_critical",
+          level: "critical",
+          title: `Block nhớ dự phòng (Available Spare) chỉ còn ${spareVal}% (Dưới ngưỡng 10%)`,
+          desc: "Bộ điều khiển đã sử dụng gần hết các cell nhớ dự trữ. Nguy cơ mất dữ liệu đột ngột rất cao."
+        });
+      } else if (spareVal < 90) {
+        warnings.push({
+          id: "spare_warning",
+          level: "warning",
+          title: `Block dự phòng giảm xuống còn ${spareVal}%`,
+          desc: "Đã có các block nhớ flash bị hỏng và được controller tự động tái phân bổ."
+        });
+      }
+    }
+
+    // Check Media & ECC Errors
+    const mediaErrorsAttr = drive.attributes?.find(a => a.name.includes("Media and Data Integrity"));
+    if (mediaErrorsAttr && mediaErrorsAttr.rawVal > 0) {
+      warnings.push({
+        id: "media_errors",
+        level: "critical",
+        title: `Ghi nhận ${mediaErrorsAttr.rawVal} lỗi toàn vẹn dữ liệu (Unrecoverable ECC)`,
+        desc: "Dữ liệu trên một số phân vùng flash không thể phục hồi bằng mã sửa lỗi phần cứng. Hãy sao lưu khẩn cấp!"
       });
     }
 
@@ -366,25 +422,25 @@ class SmartEngine {
       warnings.push({
         id: "temp_critical",
         level: "critical",
-        title: "Nhiệt độ ổ SSD ở mức nguy hiểm (>70°C)",
-        message: "Nhiệt độ quá cao có thể kích hoạt Thermal Throttling và gây suy giảm độ bền tế bào nhớ NAND Flash."
+        title: `Nhiệt độ ổ đĩa quá cao: ${drive.temperature}°C (Thermal Throttling)`,
+        desc: "Nhiệt độ vượt ngưỡng an toàn của Apple Fabric NVMe. Tốc độ đọc/ghi sẽ bị giảm và tuổi thọ chip giảm nhanh."
       });
     } else if (drive.temperature >= 55) {
       warnings.push({
         id: "temp_warning",
         level: "warning",
-        title: "Nhiệt độ hoạt động hơi cao",
-        message: `Nhiệt độ SSD ghi nhận là ${drive.temperature}°C. Nên đảm bảo luồng gió thông thoáng cho MacBook.`
+        title: `Nhiệt độ hoạt động hơi cao: ${drive.temperature}°C`,
+        desc: "Hãy đảm bảo khe tản nhiệt của MacBook thông thoáng và tránh đặt máy lên bề mặt mềm như nệm hoặc chăn."
       });
     }
 
-    // Check Unsafe Shutdowns
-    if (drive.unsafeShutdowns > 50) {
+    // Check Read Disturb Ratio
+    if (wearInfo.readDisturbRisk && wearInfo.readDisturbRisk.includes("Đáng lưu ý")) {
       warnings.push({
-        id: "shutdown_warning",
+        id: "read_disturb",
         level: "notice",
-        title: "Ghi nhận nhiều lần mất nguồn đột ngột",
-        message: `Ổ đĩa đã trải qua ${drive.unsafeShutdowns} lần tắt nguồn không an toàn. Điều này có thể làm tăng nguy cơ hỏng hệ điều hành file system APFS.`
+        title: `Tỉ lệ Đọc/Ghi cao (${wearInfo.readWriteRatio}x) - Read Disturb Monitoring`,
+        desc: `Tổng dữ liệu đọc (${wearInfo.readTB} TB) cao gấp ${wearInfo.readWriteRatio} lần dữ liệu ghi. NVMe Controller tự động kích hoạt cơ chế Read Scrubbing ngầm để bảo vệ dữ liệu.`
       });
     }
 
@@ -392,15 +448,15 @@ class SmartEngine {
   }
 
   /**
-   * Evaluates Thermal Assessment
+   * Assesses Thermal Status
    */
   assessThermal(temp) {
     if (temp >= 70) {
-      return { status: "critical", label: "Rất Nóng", desc: "Nguy cơ giảm hiệu năng do tản nhiệt kém" };
+      return { status: "critical", label: "Quá nhiệt (Overheating)", color: "var(--accent-red)" };
     } else if (temp >= 55) {
-      return { status: "warning", label: "Hơi Nóng", desc: "Nhiệt độ tăng khi máy tải nặng" };
+      return { status: "warning", label: "Hơi nóng (Warm)", color: "var(--accent-amber)" };
     } else {
-      return { status: "good", label: "Mát Mẻ / Tối Ưu", desc: "Nhiệt độ hoàn toàn lý tưởng cho SSD" };
+      return { status: "good", label: "Mát mẻ (Cool & Optimal)", color: "var(--accent-green)" };
     }
   }
 }

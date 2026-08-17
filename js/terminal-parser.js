@@ -2,6 +2,7 @@
  * CHECK MAC SUITE PRO - MAC TERMINAL & SMART LOG PARSER
  * Parses output from smartctl, diskutil, system_profiler, nvme-cli, and smartmontools
  * Supports NVMe (Apple Silicon M1-M4, A18 Pro, Intel NVMe) and ATA/SATA (2012-2015 Macs)
+ * High-Precision Decimal Wear & Read/Write Analytics Engine
  */
 
 class TerminalLogParser {
@@ -162,14 +163,18 @@ class TerminalLogParser {
       });
     }
 
-    // 3. Fallback / Mathematical Wear Calculation if percentage_used not reported
-    if (percentageUsed === null) {
-      if (dataUnitsWrittenTB > 0 && ratedTBW > 0) {
-        percentageUsed = Math.min(100, Math.round((dataUnitsWrittenTB / ratedTBW) * 100));
-      } else {
-        percentageUsed = 0;
-      }
+    // 3. High-Precision Mathematical Wear Calculation (2 Decimal Places)
+    let exactTbwWear = 0;
+    if (dataUnitsWrittenTB > 0 && ratedTBW > 0) {
+      exactTbwWear = Number(((dataUnitsWrittenTB / ratedTBW) * 100).toFixed(2));
     }
+
+    if (percentageUsed === null) {
+      percentageUsed = exactTbwWear;
+    } else {
+      percentageUsed = Number(Math.max(percentageUsed, exactTbwWear).toFixed(2));
+    }
+    const lifeRemaining = Number(Math.max(0, 100 - percentageUsed).toFixed(2));
 
     if (Object.keys(nvmeLog).length > 0) {
       attributes.push(
@@ -177,9 +182,9 @@ class TerminalLogParser {
         { id: 2, name: "Composite Temperature", raw: `${temperature} °C`, rawVal: temperature, normalized: Math.max(10, 100 - (temperature - 30)), worst: 80, threshold: 75, status: (temperature > 70 ? "Critical" : temperature > 55 ? "Warning" : "OK"), desc: "Nhiệt độ hoạt động tổng hợp", flags: "Real-time" },
         { id: 3, name: "Available Spare", raw: `${availSpare}%`, rawVal: availSpare, normalized: availSpare, worst: availSpare, threshold: availSpareThreshold, status: (availSpare < availSpareThreshold ? "Critical" : availSpare < 90 ? "Warning" : "OK"), desc: "Dung lượng block nhớ dự phòng còn lại", flags: "Pre-failure" },
         { id: 4, name: "Available Spare Threshold", raw: `${availSpareThreshold}%`, rawVal: availSpareThreshold, normalized: 100, worst: 100, threshold: availSpareThreshold, status: "OK", desc: "Ngưỡng cảnh báo cạn kiệt block dự phòng", flags: "Static" },
-        { id: 5, name: "Percentage Used", raw: `${percentageUsed}%`, rawVal: percentageUsed, normalized: Math.max(0, 100 - percentageUsed), worst: Math.max(0, 100 - percentageUsed), threshold: 100, status: (percentageUsed > 90 ? "Critical" : percentageUsed > 75 ? "Warning" : "OK"), desc: "Mức độ hao mòn chu kỳ ghi flash", flags: "Wear-out" },
-        { id: 6, name: "Data Units Read", raw: `${dataUnitsReadTB.toFixed(2)} TB`, rawVal: dataUnitsReadTB, normalized: 100, worst: 100, threshold: 0, status: "OK", desc: "Tổng lượng dữ liệu đã đọc", flags: "Statistical" },
-        { id: 7, name: "Data Units Written", raw: `${dataUnitsWrittenTB.toFixed(2)} TB`, rawVal: dataUnitsWrittenTB, normalized: 100, worst: 100, threshold: 0, status: "OK", desc: "Tổng lượng dữ liệu đã ghi", flags: "Statistical" },
+        { id: 5, name: "Percentage Used", raw: `${percentageUsed}%`, rawVal: percentageUsed, normalized: Math.max(0, Math.round(100 - percentageUsed)), worst: Math.max(0, Math.round(100 - percentageUsed)), threshold: 100, status: (percentageUsed > 90 ? "Critical" : percentageUsed > 75 ? "Warning" : "OK"), desc: "Mức độ hao mòn chu kỳ ghi flash NAND", flags: "Wear-out" },
+        { id: 6, name: "Data Units Read", raw: `${dataUnitsReadTB.toFixed(2)} TB`, rawVal: dataUnitsReadTB, normalized: 100, worst: 100, threshold: 0, status: "OK", desc: "Tổng lượng dữ liệu đã đọc (TBR)", flags: "Statistical" },
+        { id: 7, name: "Data Units Written", raw: `${dataUnitsWrittenTB.toFixed(2)} TB`, rawVal: dataUnitsWrittenTB, normalized: 100, worst: 100, threshold: 0, status: "OK", desc: "Tổng lượng dữ liệu đã ghi (TBW)", flags: "Statistical" },
         { id: 8, name: "Power On Hours", raw: `${powerOnHours} hours`, rawVal: powerOnHours, normalized: 100, worst: 100, threshold: 0, status: "OK", desc: "Tổng số giờ hoạt động", flags: "Statistical" },
         { id: 9, name: "Power Cycles", raw: `${powerCycles}`, rawVal: powerCycles, normalized: 100, worst: 100, threshold: 0, status: "OK", desc: "Số chu kỳ bật tắt", flags: "Statistical" },
         { id: 10, name: "Unsafe Shutdowns", raw: `${unsafeShutdowns}`, rawVal: unsafeShutdowns, normalized: Math.max(0, 100 - unsafeShutdowns), worst: 100, threshold: 0, status: (unsafeShutdowns > 50 ? "Warning" : "OK"), desc: "Số lần mất nguồn đột ngột", flags: "Notice" },
@@ -202,7 +207,7 @@ class TerminalLogParser {
       partitionScheme: "GUID Partition Table",
       sectorSize: "4096 bytes",
       percentageUsed: percentageUsed,
-      lifeRemaining: Math.max(0, 100 - percentageUsed),
+      lifeRemaining: lifeRemaining,
       ratedTBW: ratedTBW,
       dataUnitsWrittenTB: parseFloat(dataUnitsWrittenTB.toFixed(2)),
       dataUnitsReadTB: parseFloat(dataUnitsReadTB.toFixed(2)),
@@ -369,13 +374,18 @@ class TerminalLogParser {
 
     const ratedTBW = this.getRatedTBWForCapacity(capacity, modelName);
 
-    if (percentageUsed === null) {
-      if (dataUnitsWrittenTB > 0 && ratedTBW > 0) {
-        percentageUsed = Math.min(100, Math.round((dataUnitsWrittenTB / ratedTBW) * 100));
-      } else {
-        percentageUsed = 0;
-      }
+    // High-Precision Decimal Calculation
+    let exactTbwWear = 0;
+    if (dataUnitsWrittenTB > 0 && ratedTBW > 0) {
+      exactTbwWear = Number(((dataUnitsWrittenTB / ratedTBW) * 100).toFixed(2));
     }
+
+    if (percentageUsed === null) {
+      percentageUsed = exactTbwWear;
+    } else {
+      percentageUsed = Number(Math.max(percentageUsed, exactTbwWear).toFixed(2));
+    }
+    const lifeRemaining = Number(Math.max(0, 100 - percentageUsed).toFixed(2));
 
     // Build attributes table
     attributes.push(
@@ -383,9 +393,9 @@ class TerminalLogParser {
       { id: 2, name: "Composite Temperature", raw: `${temperature} °C`, rawVal: temperature, normalized: Math.max(10, 100 - (temperature - 30)), worst: 80, threshold: 75, status: (temperature > 70 ? "Critical" : temperature > 55 ? "Warning" : "OK"), desc: "Nhiệt độ hoạt động tổng hợp", flags: "Real-time" },
       { id: 3, name: "Available Spare", raw: `${availSpare}%`, rawVal: availSpare, normalized: availSpare, worst: availSpare, threshold: availSpareThreshold, status: (availSpare < availSpareThreshold ? "Critical" : availSpare < 90 ? "Warning" : "OK"), desc: "Dung lượng block nhớ dự phòng còn lại", flags: "Pre-failure" },
       { id: 4, name: "Available Spare Threshold", raw: `${availSpareThreshold}%`, rawVal: availSpareThreshold, normalized: 100, worst: 100, threshold: availSpareThreshold, status: "OK", desc: "Ngưỡng cảnh báo cạn kiệt block dự phòng", flags: "Static" },
-      { id: 5, name: "Percentage Used", raw: `${percentageUsed}%`, rawVal: percentageUsed, normalized: Math.max(0, 100 - percentageUsed), worst: Math.max(0, 100 - percentageUsed), threshold: 100, status: (percentageUsed > 90 ? "Critical" : percentageUsed > 75 ? "Warning" : "OK"), desc: "Mức độ hao mòn chu kỳ ghi flash", flags: "Wear-out" },
-      { id: 6, name: "Data Units Read", raw: `${dataUnitsReadTB.toFixed(2)} TB`, rawVal: dataUnitsReadTB, normalized: 100, worst: 100, threshold: 0, status: "OK", desc: "Tổng lượng dữ liệu đã đọc", flags: "Statistical" },
-      { id: 7, name: "Data Units Written", raw: `${dataUnitsWrittenTB.toFixed(2)} TB`, rawVal: dataUnitsWrittenTB, normalized: 100, worst: 100, threshold: 0, status: "OK", desc: "Tổng lượng dữ liệu đã ghi", flags: "Statistical" },
+      { id: 5, name: "Percentage Used", raw: `${percentageUsed}%`, rawVal: percentageUsed, normalized: Math.max(0, Math.round(100 - percentageUsed)), worst: Math.max(0, Math.round(100 - percentageUsed)), threshold: 100, status: (percentageUsed > 90 ? "Critical" : percentageUsed > 75 ? "Warning" : "OK"), desc: "Mức độ hao mòn chu kỳ ghi flash NAND", flags: "Wear-out" },
+      { id: 6, name: "Data Units Read", raw: `${dataUnitsReadTB.toFixed(2)} TB`, rawVal: dataUnitsReadTB, normalized: 100, worst: 100, threshold: 0, status: "OK", desc: "Tổng lượng dữ liệu đã đọc (TBR)", flags: "Statistical" },
+      { id: 7, name: "Data Units Written", raw: `${dataUnitsWrittenTB.toFixed(2)} TB`, rawVal: dataUnitsWrittenTB, normalized: 100, worst: 100, threshold: 0, status: "OK", desc: "Tổng lượng dữ liệu đã ghi (TBW)", flags: "Statistical" },
       { id: 8, name: "Power On Hours", raw: `${powerOnHours} hours`, rawVal: powerOnHours, normalized: 100, worst: 100, threshold: 0, status: "OK", desc: "Tổng số giờ hoạt động", flags: "Statistical" },
       { id: 9, name: "Power Cycles", raw: `${powerCycles}`, rawVal: powerCycles, normalized: 100, worst: 100, threshold: 0, status: "OK", desc: "Số chu kỳ bật tắt", flags: "Statistical" },
       { id: 10, name: "Unsafe Shutdowns", raw: `${unsafeShutdowns}`, rawVal: unsafeShutdowns, normalized: Math.max(0, 100 - unsafeShutdowns), worst: 100, threshold: 0, status: (unsafeShutdowns > 50 ? "Warning" : "OK"), desc: "Số lần mất nguồn đột ngột", flags: "Notice" },
@@ -407,7 +417,7 @@ class TerminalLogParser {
       partitionScheme: "GUID Partition Table",
       sectorSize: "4096 bytes",
       percentageUsed: percentageUsed,
-      lifeRemaining: Math.max(0, 100 - percentageUsed),
+      lifeRemaining: lifeRemaining,
       ratedTBW: ratedTBW,
       dataUnitsWrittenTB: parseFloat(dataUnitsWrittenTB.toFixed(2)),
       dataUnitsReadTB: parseFloat(dataUnitsReadTB.toFixed(2)),
@@ -432,7 +442,7 @@ class TerminalLogParser {
       { id: 1, name: "Critical Warning", raw: "0x00", rawVal: 0, normalized: 100, worst: 100, threshold: 0, status: "OK", desc: "Cảnh báo lỗi phần cứng controller NVMe", flags: "Pre-failure" },
       { id: 2, name: "Composite Temperature", raw: `${temperature} °C`, rawVal: temperature, normalized: 90, worst: 80, threshold: 75, status: "OK", desc: "Nhiệt độ hoạt động", flags: "Real-time" },
       { id: 3, name: "Available Spare", raw: `${availSpare}%`, rawVal: availSpare, normalized: availSpare, worst: availSpare, threshold: 10, status: "OK", desc: "Block nhớ dự phòng", flags: "Pre-failure" },
-      { id: 5, name: "Percentage Used", raw: `${percentageUsed}%`, rawVal: percentageUsed, normalized: 100 - percentageUsed, worst: 100 - percentageUsed, threshold: 100, status: "OK", desc: "Mức độ hao mòn chu kỳ ghi", flags: "Wear-out" }
+      { id: 5, name: "Percentage Used", raw: `${percentageUsed}%`, rawVal: percentageUsed, normalized: Math.max(0, Math.round(100 - percentageUsed)), worst: Math.max(0, Math.round(100 - percentageUsed)), threshold: 100, status: "OK", desc: "Mức độ hao mòn chu kỳ ghi", flags: "Wear-out" }
     ];
   }
 }

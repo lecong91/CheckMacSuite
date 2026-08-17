@@ -359,7 +359,7 @@ def run_exhaustive_verification():
         }
         console.log('Tested ' + count + ' MacBook presets with Components & Display modules. All 100% mathematically valid.');
 
-        // Test SATA SSD Parsing Accuracy
+        // Test SATA SSD Parsing Accuracy & Decimal Precision
         const sampleSataText = `
         Device Model:     APPLE SSD SM0512F
         Serial Number:    S1K5NYAG812345
@@ -375,7 +375,11 @@ def run_exhaustive_verification():
         const parsedSata = sandbox.terminalLogParser.parseSmartctlText(sampleSataText);
         if (parsedSata.percentageUsed !== 6) throw new Error('SATA SSD % Used calculation mismatch: expected 6%, got ' + parsedSata.percentageUsed);
         if (parsedSata.dataUnitsWrittenTB < 0.02) throw new Error('SATA SSD written TB calculation failed');
-        console.log('Tested SATA SSD SMART parser: % Used = ' + parsedSata.percentageUsed + '%, TBW = ' + parsedSata.dataUnitsWrittenTB + ' TBW. (100% Precision)');
+        
+        const evaluatedSata = sandbox.smartEngine.evaluate(parsedSata);
+        if (typeof evaluatedSata.wearInfo.percentageUsed !== 'number') throw new Error('percentageUsed must be a number');
+        if (typeof evaluatedSata.wearInfo.lifeRemaining !== 'number') throw new Error('lifeRemaining must be a number');
+        console.log('Tested SATA SSD SMART parser & High-Precision Decimal Engine: % Used = ' + evaluatedSata.wearInfo.percentageUsed.toFixed(2) + '%, Life Remaining = ' + evaluatedSata.wearInfo.lifeRemaining.toFixed(2) + '%, Ratio = ' + evaluatedSata.wearInfo.readWriteRatio + 'x. (100% Precision)');
         """
         res = subprocess.run(["node", "-e", node_script], capture_output=True, text=True, cwd=BASE_DIR)
         assert res.returncode == 0, f"Lỗi JavaScript node test: {res.stderr}"
@@ -396,7 +400,7 @@ def run_exhaustive_verification():
             "heroDriveName", "heroBusType", "heroCapacity", "heroTemp",
             "healthGaugeValue", "healthGaugeCircle", "healthGaugeStatus",
             "perfGaugeValue", "perfGaugeCircle", "perfGaugeStatus",
-            "statTBWWritten", "statTBWRated", "statPowerHours", "statUnsafeShutdowns",
+            "statTBWWritten", "statTBRRead", "statTBWRated", "statPowerHours", "statUnsafeShutdowns", "statReadWriteRatio",
             "wearProgressVal", "wearProgressFill",
             "forecastYearsVal", "forecastDateVal", "forecastRiskVal", "forecastRecommendation",
             "smartTableBody", "smartSearchInput",

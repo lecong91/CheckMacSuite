@@ -703,24 +703,29 @@ function renderOverview(drive) {
   const perfStatus = drive.performanceScore >= 80 ? "good" : drive.performanceScore >= 50 ? "warning" : "critical";
   updateRadialGauge("perfGaugeCircle", "perfGaugeValue", "perfGaugeStatus", drive.performanceScore, perfStatus);
 
-  const lifeRemaining = drive.wearInfo?.lifeRemaining || (100 - (drive.percentageUsed || 0));
+  const percentageUsed = (drive.wearInfo?.percentageUsed !== undefined) ? drive.wearInfo.percentageUsed : (drive.percentageUsed || 0);
+  const percentageUsedStr = (typeof percentageUsed === "number") ? percentageUsed.toFixed(2) : String(percentageUsed);
+
+  const lifeRemaining = (drive.wearInfo?.lifeRemaining !== undefined) ? drive.wearInfo.lifeRemaining : (100 - percentageUsed);
+  const lifeRemainingStr = (typeof lifeRemaining === "number") ? lifeRemaining.toFixed(2) : String(lifeRemaining);
   const lifeStatus = lifeRemaining >= 50 ? "good" : lifeRemaining >= 20 ? "warning" : "critical";
-  updateRadialGauge("lifeGaugeCircle", "lifeGaugeValue", "lifeGaugeStatus", lifeRemaining, lifeStatus);
+  updateRadialGauge("lifeGaugeCircle", "lifeGaugeValue", "lifeGaugeStatus", Math.round(lifeRemaining), lifeStatus);
 
   const wearFill = document.getElementById("wearProgressFill");
   const wearVal = document.getElementById("wearProgressVal");
   if (wearFill) {
-    wearFill.style.width = `${drive.percentageUsed || 0}%`;
-    wearFill.className = `progress-bar-fill ${drive.percentageUsed > 80 ? "fill-critical" : drive.percentageUsed > 40 ? "fill-warning" : "fill-good"}`;
+    wearFill.style.width = `${Math.min(100, Math.max(0, percentageUsed))}%`;
+    wearFill.className = `progress-bar-fill ${percentageUsed > 80 ? "fill-critical" : percentageUsed > 40 ? "fill-warning" : "fill-good"}`;
   }
-  if (wearVal) wearVal.textContent = `${drive.percentageUsed || 0}%`;
+  if (wearVal) wearVal.textContent = `${percentageUsedStr}% (Độ bền còn lại: ${lifeRemainingStr}%)`;
 
-  setElemText("statTBWWritten", `${drive.wearInfo?.writtenTB || 0} TB`);
+  setElemText("statTBWWritten", `${drive.wearInfo?.writtenTB || drive.dataUnitsWrittenTB || 0} TB`);
+  setElemText("statTBRRead", `${drive.wearInfo?.readTB || drive.dataUnitsReadTB || 0} TB`);
   setElemText("statTBWRated", `${drive.ratedTBW || 600} TBW`);
   setElemText("statDailyWrite", `${drive.wearInfo?.dailyWriteGB || 0} GB/ngày`);
+  setElemText("statReadWriteRatio", `${drive.wearInfo?.readWriteRatio || 1.0}x`);
   setElemText("statPowerHours", `${drive.powerOnHours || 0} giờ`);
   setElemText("statUnsafeShutdowns", `${drive.unsafeShutdowns || 0} lần`);
-  setElemText("statMediaErrors", `${drive.attributes?.find(a => a.name.includes("Media and Data"))?.rawVal || 0}`);
 
   renderComprehensiveRecommendation(drive, "forecastRecommendation");
 }
