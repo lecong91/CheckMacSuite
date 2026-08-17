@@ -8,6 +8,7 @@
 
 [![Platform](https://img.shields.io/badge/Platform-macOS%20Sequoia%20%7C%20Sonoma%20%7C%20Ventura-000000?style=for-the-badge&logo=apple&logoColor=white)](https://apple.com)
 [![Architecture](https://img.shields.io/badge/SoC-Apple%20Silicon%20(M1--M4%20%7C%20A18%20Pro)%20%26%20Intel-0071e3?style=for-the-badge&logo=apple&logoColor=white)](https://apple.com)
+[![Release](https://img.shields.io/badge/Release-v1.0.0%20Stable-0071e3?style=for-the-badge)](https://github.com/lecong91/CheckMacSuite/releases)
 [![Zero-Dependency](https://img.shields.io/badge/Dependencies-Zero%20Config%20%2F%20Offline-34c759?style=for-the-badge)](https://github.com)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
 
