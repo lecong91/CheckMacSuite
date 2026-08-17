@@ -1,6 +1,6 @@
 #!/bin/bash
 # ==============================================================================
-# CheckMac - MacBook Hardware, S.M.A.R.T & Battery Forensics Suite
+# Check Mac Suite - MacBook Hardware, S.M.A.R.T & Battery Forensics Suite
 # Double-click this file to launch on any MacBook / Mac (Apple Silicon & Intel)
 # ==============================================================================
 
@@ -8,7 +8,7 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$DIR"
 
 echo "======================================================================"
-echo "           CHECKMAC - MACBOOK HARDWARE & SSD DIAGNOSTICS"
+echo "         CHECK MAC SUITE - HARDWARE & SSD DIAGNOSTICS"
 echo "======================================================================"
 echo ""
 echo "Đang khởi động hệ thống chẩn đoán S.M.A.R.T & phần cứng MacBook..."
