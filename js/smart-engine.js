@@ -1,5 +1,5 @@
 /**
- * CHECK MAC SUITE PRO - S.M.A.R.T ANALYSIS & LIFESPAN PREDICTION ENGINE
+ * CHECK MAC SUITE - S.M.A.R.T ANALYSIS & LIFESPAN PREDICTION ENGINE
  * Implements Apple & JEDEC Compliant High-Precision NAND Wear, Read/Write Workload Ratio & Diagnostic Heuristics
  */
 

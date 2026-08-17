@@ -1,4 +1,4 @@
-#  Check Mac Suite Pro
+#  Check Mac Suite
 
 <div align="center">
 
@@ -17,7 +17,7 @@
 
 ## 🌟 Giới Thiệu (Overview)
 
-**Check Mac Suite Pro** là bộ công cụ chuyên nghiệp, độc lập 100% (Zero-Dependency) được thiết kế đặc biệt dành cho kỹ thuật viên, thợ kiểm tra máy Mac và người dùng cá nhân khi mua bán, kiểm tra tình trạng thực tế của bất kỳ dòng máy MacBook, Mac mini, Mac Studio, iMac hoặc Mac Pro nào.
+**Check Mac Suite** là bộ công cụ chuyên nghiệp, độc lập 100% (Zero-Dependency) được thiết kế đặc biệt dành cho kỹ thuật viên, thợ kiểm tra máy Mac và người dùng cá nhân khi mua bán, kiểm tra tình trạng thực tế của bất kỳ dòng máy MacBook, Mac mini, Mac Studio, iMac hoặc Mac Pro nào.
 
 ---
 

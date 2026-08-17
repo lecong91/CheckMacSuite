@@ -1,5 +1,5 @@
 /**
- * CHECK MAC SUITE PRO - DIAGNOSTIC REPORT GENERATOR
+ * CHECK MAC SUITE - DIAGNOSTIC REPORT GENERATOR
  * Generates Apple-Certified Diagnostic Sheets, Check Mac Text Logs & JSON Exports
  */
 
@@ -12,7 +12,7 @@ class ReportGenerator {
     const dateStr = new Date().toLocaleString("vi-VN");
     
     let report = `================================================================================
-CHECK MAC SUITE PRO - ADVANCED DRIVE HEALTH DIAGNOSTIC REPORT
+CHECK MAC SUITE - ADVANCED DRIVE HEALTH DIAGNOSTIC REPORT
 Generated on: ${dateStr}
 Platform: macOS Web Suite (Apple Diagnostic Parity Engine)
 ================================================================================

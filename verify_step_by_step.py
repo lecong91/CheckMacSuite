@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 ================================================================================
-CHECK MAC SUITE PRO - 11-STEP EXHAUSTIVE QUALITY ASSURANCE AUDIT
+CHECK MAC SUITE - 11-STEP EXHAUSTIVE QUALITY ASSURANCE AUDIT
 Verifying Battery Forensics (Replaced/Zin/Fraud), Intelligent Desktop Camera Detection,
 Low-Resource Localhost Shutdown & Caching, NVMe & SATA SSD Precision
 ================================================================================

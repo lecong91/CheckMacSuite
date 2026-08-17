@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 ================================================================================
-CHECK MAC SUITE PRO - COMPREHENSIVE MULTI-MACBOOK VERIFICATION SUITE
+CHECK MAC SUITE - COMPREHENSIVE MULTI-MACBOOK VERIFICATION SUITE
 Automated Loop Engineering Quality Assurance & Data Precision Test
 ================================================================================
 """

@@ -1,5 +1,5 @@
 /**
- * CHECK MAC SUITE PRO - GENUINE PARTS & SERVICE HISTORY AUDIT
+ * CHECK MAC SUITE - GENUINE PARTS & SERVICE HISTORY AUDIT
  * Apple-Certified Component Verification Engine
  */
 

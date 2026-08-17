@@ -1,5 +1,5 @@
 /**
- * CHECK MAC SUITE PRO - MAC TERMINAL & SMART LOG PARSER
+ * CHECK MAC SUITE - MAC TERMINAL & SMART LOG PARSER
  * Parses output from smartctl, diskutil, system_profiler, nvme-cli, and smartmontools
  * Supports NVMe (Apple Silicon M1-M4, A18 Pro, Intel NVMe) and ATA/SATA (2012-2015 Macs)
  * High-Precision Decimal Wear & Read/Write Analytics Engine

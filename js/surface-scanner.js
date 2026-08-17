@@ -1,5 +1,5 @@
 /**
- * CHECK MAC SUITE PRO - DISK SURFACE SCANNER & BLOCK VISUALIZER
+ * CHECK MAC SUITE - DISK SURFACE SCANNER & BLOCK VISUALIZER
  * Real-time 60fps Memory Grid, Bad Sector & Slow-Response Block Detector
  * Integrated with Low-Resource Lifecycle Management & Tab Throttling
  */

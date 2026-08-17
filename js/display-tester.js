@@ -1,6 +1,6 @@
 /**
- * CHECK MAC SUITE PRO - DISPLAY QUALITY & SCREEN DIAGNOSTICS SUITE
- * Apple Retina & Liquid Retina XDR Screen Inspection Engine
+ * CHECK MAC SUITE - DISPLAY QUALITY & SCREEN DIAGNOSTICS SUITE
+ * Visual Test Matrix, Native Resolution & High Refresh Rate Diagnostics
  */
 
 class DisplayTester {

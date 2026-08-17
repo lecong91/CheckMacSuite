@@ -1,5 +1,5 @@
 /**
- * CHECK MAC SUITE PRO - PRESET HARDWARE & SMART DATASETS
+ * CHECK MAC SUITE - PRESET HARDWARE & SMART DATASETS
  * Realistic Apple Silicon & Intel Mac Storage Datasets
  */
 

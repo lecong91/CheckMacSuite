@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 ================================================================================
-CHECK MAC SUITE PRO - NATIVE MACOS BACKEND & HARDWARE SCANNER
+CHECK MAC SUITE - NATIVE MACOS BACKEND & HARDWARE SCANNER
 Zero-Dependency Native Python Server for Any MacBook / Mac (Apple Silicon & Intel)
 ================================================================================
 """
@@ -1437,7 +1437,7 @@ class CheckMacAPIHandler(http.server.SimpleHTTPRequestHandler):
             def do_shutdown():
                 time.sleep(0.4)
                 print("\n" + "=" * 75)
-                print("🛑 CHECK MAC SUITE PRO - ĐÃ TẮT MÁY CHỦ LOCALHOST THÀNH CÔNG")
+                print("🛑 CHECK MAC SUITE - ĐÃ TẮT MÁY CHỦ LOCALHOST THÀNH CÔNG")
                 print("💡 Toàn bộ tài nguyên bộ nhớ & CPU đã được giải phóng.")
                 print("=" * 75 + "\n")
                 os._exit(0)
@@ -1466,7 +1466,7 @@ class CheckMacAPIHandler(http.server.SimpleHTTPRequestHandler):
             def do_shutdown():
                 time.sleep(0.4)
                 print("\n" + "=" * 75)
-                print("🛑 CHECK MAC SUITE PRO - ĐÃ TẮT MÁY CHỦ LOCALHOST THÀNH CÔNG")
+                print("🛑 CHECK MAC SUITE - ĐÃ TẮT MÁY CHỦ LOCALHOST THÀNH CÔNG")
                 print("💡 Toàn bộ tài nguyên bộ nhớ & CPU đã được giải phóng.")
                 print("=" * 75 + "\n")
                 os._exit(0)
@@ -1515,7 +1515,7 @@ def start_server():
     try:
         with socketserver.TCPServer((HOST, PORT), CheckMacAPIHandler) as httpd:
             print("=" * 75)
-            print(f"🚀 CHECK MAC SUITE PRO - LIVE NATIVE ENGINE READY")
+            print(f"🚀 CHECK MAC SUITE - LIVE NATIVE ENGINE READY")
             print(f"📍 Local Server running at: http://{HOST}:{PORT}")
             print(f"💻 Machine: {platform.machine()} | macOS {platform.mac_ver()[0]}")
             smartctl_path = MacHardwareScanner.find_smartctl()

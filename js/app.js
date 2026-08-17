@@ -1,5 +1,5 @@
 /**
- * CHECK MAC SUITE PRO - MAIN APPLICATION CONTROLLER
+ * CHECK MAC SUITE - MAIN APPLICATION CONTROLLER
  * Manages State, Data Loading, Real-time Visualizations & Tab Switching
  */
 

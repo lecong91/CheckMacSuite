@@ -1,5 +1,5 @@
 /**
- * CHECK MAC SUITE PRO - SSD SPEED BENCHMARK & IOPS TESTER
+ * CHECK MAC SUITE - SSD SPEED BENCHMARK & IOPS TESTER
  * Measures Live Read/Write Throughput and Visualizes Live I/O Performance
  */
 
