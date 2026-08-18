@@ -1317,24 +1317,32 @@ class MacHardwareScanner:
         if "display" in _CACHE and (now - _CACHE["display"]["ts"] < CACHE_TTL):
             return _CACHE["display"]["data"]
 
-        # 1. Query CoreGraphics Quartz via ctypes for exact physical hardware raster dimensions
+        # 1. Query CoreGraphics Quartz via ctypes to enumerate all display modes and find the true hardware native panel resolution
         cg_displays = {}
         try:
             import ctypes
             from ctypes import c_uint32, c_void_p, c_size_t, c_double, POINTER, byref
             Quartz = ctypes.cdll.LoadLibrary('/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics')
+            CoreFoundation = ctypes.cdll.LoadLibrary('/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation')
+
+            CoreFoundation.CFArrayGetCount.restype = c_size_t
+            CoreFoundation.CFArrayGetCount.argtypes = [c_void_p]
+            CoreFoundation.CFArrayGetValueAtIndex.restype = c_void_p
+            CoreFoundation.CFArrayGetValueAtIndex.argtypes = [c_void_p, c_size_t]
+            CoreFoundation.CFRelease.restype = None
+            CoreFoundation.CFRelease.argtypes = [c_void_p]
+
             Quartz.CGGetOnlineDisplayList.restype = c_uint32
             Quartz.CGGetOnlineDisplayList.argtypes = [c_uint32, POINTER(c_uint32), POINTER(c_uint32)]
-            Quartz.CGDisplayPixelsWide.restype = c_size_t
-            Quartz.CGDisplayPixelsWide.argtypes = [c_uint32]
-            Quartz.CGDisplayPixelsHigh.restype = c_size_t
-            Quartz.CGDisplayPixelsHigh.argtypes = [c_uint32]
             Quartz.CGDisplayIsBuiltin.restype = c_uint32
             Quartz.CGDisplayIsBuiltin.argtypes = [c_uint32]
             Quartz.CGDisplayIsMain.restype = c_uint32
             Quartz.CGDisplayIsMain.argtypes = [c_uint32]
             Quartz.CGDisplayCopyDisplayMode.restype = c_void_p
             Quartz.CGDisplayCopyDisplayMode.argtypes = [c_uint32]
+            Quartz.CGDisplayCopyAllDisplayModes.restype = c_void_p
+            Quartz.CGDisplayCopyAllDisplayModes.argtypes = [c_uint32, c_void_p]
+
             Quartz.CGDisplayModeGetWidth.restype = c_size_t
             Quartz.CGDisplayModeGetWidth.argtypes = [c_void_p]
             Quartz.CGDisplayModeGetHeight.restype = c_size_t
@@ -1345,6 +1353,8 @@ class MacHardwareScanner:
             Quartz.CGDisplayModeGetPixelHeight.argtypes = [c_void_p]
             Quartz.CGDisplayModeGetRefreshRate.restype = c_double
             Quartz.CGDisplayModeGetRefreshRate.argtypes = [c_void_p]
+            Quartz.CGDisplayModeGetIOFlags.restype = c_uint32
+            Quartz.CGDisplayModeGetIOFlags.argtypes = [c_void_p]
 
             max_d = 16
             arr = (c_uint32 * max_d)()
@@ -1353,24 +1363,48 @@ class MacHardwareScanner:
             
             for i in range(cnt.value):
                 d_id = arr[i]
-                pw = Quartz.CGDisplayPixelsWide(d_id)
-                ph = Quartz.CGDisplayPixelsHigh(d_id)
                 is_m = bool(Quartz.CGDisplayIsMain(d_id))
                 is_b = bool(Quartz.CGDisplayIsBuiltin(d_id))
-                mode = Quartz.CGDisplayCopyDisplayMode(d_id)
-                ui_w = Quartz.CGDisplayModeGetWidth(mode)
-                ui_h = Quartz.CGDisplayModeGetHeight(mode)
-                fb_w = Quartz.CGDisplayModeGetPixelWidth(mode)
-                fb_h = Quartz.CGDisplayModeGetPixelHeight(mode)
-                ref = Quartz.CGDisplayModeGetRefreshRate(mode)
+                
+                # Active UI Mode
+                cur_mode = Quartz.CGDisplayCopyDisplayMode(d_id)
+                ui_w = Quartz.CGDisplayModeGetWidth(cur_mode)
+                ui_h = Quartz.CGDisplayModeGetHeight(cur_mode)
+                fb_w = Quartz.CGDisplayModeGetPixelWidth(cur_mode)
+                fb_h = Quartz.CGDisplayModeGetPixelHeight(cur_mode)
+                ref = Quartz.CGDisplayModeGetRefreshRate(cur_mode)
+                
+                # Hardware True Native Panel Resolution via Mode Enumeration
+                all_modes = Quartz.CGDisplayCopyAllDisplayModes(d_id, None)
+                nat_w, nat_h = 0, 0
+                max_pw, max_ph = 0, 0
+                if all_modes:
+                    m_cnt = CoreFoundation.CFArrayGetCount(all_modes)
+                    for mi in range(m_cnt):
+                        m = CoreFoundation.CFArrayGetValueAtIndex(all_modes, mi)
+                        pw_m = Quartz.CGDisplayModeGetPixelWidth(m)
+                        ph_m = Quartz.CGDisplayModeGetPixelHeight(m)
+                        flags = Quartz.CGDisplayModeGetIOFlags(m)
+                        # Check kDisplayModeNativeFlag = 0x02000000
+                        if flags & 0x02000000:
+                            if pw_m * ph_m > nat_w * nat_h:
+                                nat_w, nat_h = pw_m, ph_m
+                        if pw_m * ph_m > max_pw * max_ph:
+                            max_pw, max_ph = pw_m, ph_m
+                    CoreFoundation.CFRelease(all_modes)
+                    
+                if nat_w == 0 or nat_h == 0:
+                    nat_w, nat_h = max_pw, max_ph
                 
                 cg_displays[str(d_id)] = {
                     'id': d_id,
-                    'pw': pw,
-                    'ph': ph,
+                    'native_w': nat_w,
+                    'native_h': nat_h,
                     'isMain': is_m,
                     'isBuiltIn': is_b,
                     'uiResolution': f'{ui_w} x {ui_h} @ {ref:.2f}Hz' if ref > 0 else f'{ui_w} x {ui_h} @ 60.00Hz',
+                    'ui_w': ui_w,
+                    'ui_h': ui_h,
                     'fb_w': fb_w,
                     'fb_h': fb_h,
                     'refreshRate': f'{ref:.0f}Hz' if ref > 0 else '60Hz'
@@ -1403,8 +1437,8 @@ class MacHardwareScanner:
                             cg_info = list(cg_displays.values())[0]
 
                         if cg_info:
-                            pw = cg_info['pw']
-                            ph = cg_info['ph']
+                            nat_w = cg_info['native_w']
+                            nat_h = cg_info['native_h']
                             fb_w = cg_info['fb_w']
                             fb_h = cg_info['fb_h']
                             ui_res = cg_info['uiResolution']
@@ -1412,7 +1446,7 @@ class MacHardwareScanner:
                             if is_main is False and cg_info['isMain']: is_main = True
                             if is_builtin is False and cg_info['isBuiltIn']: is_builtin = True
                         else:
-                            pw, ph = 2560, 1440
+                            nat_w, nat_h = 2560, 1440
                             fb_w, fb_h = 2560, 1440
                             ui_res = d_res
                             ref_rate = '60Hz'
@@ -1429,35 +1463,35 @@ class MacHardwareScanner:
                             max_brightness = spec["nits"]
                             refresh_rate = spec["refresh"]
                         elif "xdr" in d_name.lower() or "liquid retina xdr" in str(d).lower():
-                            native_str = f"{pw} x {ph} (Liquid Retina XDR)"
+                            native_str = f"{nat_w} x {nat_h} (Liquid Retina XDR)"
                             panel_type = "Liquid Retina XDR (Mini-LED, 1600 nits Peak)"
                             max_brightness = "1600 nits Peak / 1000 nits Sustained"
                             refresh_rate = "120Hz ProMotion"
                         elif "liquid retina" in d_name.lower() or "retina" in d_name.lower():
-                            native_str = f"{pw} x {ph} (Liquid Retina)"
+                            native_str = f"{nat_w} x {nat_h} (Liquid Retina)"
                             panel_type = "Liquid Retina Display (IPS LED, True Tone)"
                             max_brightness = "500 nits"
                             refresh_rate = "60Hz"
                         else:
                             # External Monitor physical native resolution
-                            if pw == 2560 and ph == 1440:
-                                native_str = "2560 x 1440 (2K QHD)"
-                            elif pw == 1920 and ph == 1080:
-                                native_str = "1920 x 1080 (1080p FHD)"
-                            elif pw == 3840 and ph == 2160:
+                            if nat_w == 3840 and nat_h == 2160:
                                 native_str = "3840 x 2160 (4K UHD)"
-                            elif pw == 5120 and ph == 2880:
+                            elif nat_w == 2560 and nat_h == 1440:
+                                native_str = "2560 x 1440 (2K QHD)"
+                            elif nat_w == 1920 and nat_h == 1080:
+                                native_str = "1920 x 1080 (1080p FHD)"
+                            elif nat_w == 5120 and nat_h == 2880:
                                 native_str = "5120 x 2880 (5K Retina)"
-                            elif pw == 6016 and ph == 3384:
+                            elif nat_w == 6016 and nat_h == 3384:
                                 native_str = "6016 x 3384 (6K Pro Display XDR)"
                             else:
-                                native_str = f"{pw} x {ph}"
+                                native_str = f"{nat_w} x {nat_h}"
 
                         # HiDPI Super-Sampling Framebuffer
-                        if fb_w > pw or fb_h > ph:
+                        if fb_w > nat_w or fb_h > nat_h:
                             hidpi_str = f"{fb_w} x {fb_h} (2x HiDPI Super-Sampling Framebuffer)"
                         else:
-                            hidpi_str = f"{pw} x {ph} (Chuẩn 1:1 Pixel Direct Mapping)"
+                            hidpi_str = f"{nat_w} x {nat_h} (Chuẩn 1:1 Pixel Direct Mapping)"
 
                         displays.append({
                             "name": d_name,
