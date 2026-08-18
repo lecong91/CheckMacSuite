@@ -731,9 +731,32 @@
             <h3 class="card-title"><span>⚡</span> Đo Tốc độ Đọc/Ghi Thực tế & IOPS (SSD Performance Benchmark)</h3>
             <span class="card-subtitle">Chuẩn Apple AST2 & Blackmagic Direct I/O (Bypass Cache fcntl F_NOCACHE) đo trực tiếp chip nhớ NAND</span>
           </div>
-          <button id="startBenchmarkBtn" class="btn btn-primary">
-            <span>⚡ Bắt đầu Đo tốc độ (Run Benchmark)</span>
-          </button>
+          <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+            <div class="drive-select-box">
+              <label for="benchmarkSizeSelect">Dung lượng:</label>
+              <select id="benchmarkSizeSelect" class="drive-dropdown">
+                <option value="1024" selected>1 GB (Chuẩn Apple AST2)</option>
+                <option value="2048">2 GB (Kiểm định Sâu - Stress Test)</option>
+                <option value="512">512 MB (Nhanh)</option>
+              </select>
+            </div>
+            <button id="startBenchmarkBtn" class="btn btn-primary">
+              <span>⚡ Bắt đầu Đo tốc độ (Run Benchmark)</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Live Real-Time Multi-Phase Progress HUD -->
+        <div id="benchProgressWrap" style="display: none; margin-bottom: 20px; background: var(--bg-glass-pill); padding: 14px 18px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle); backdrop-filter: var(--glass-blur-sm);">
+          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.86rem; margin-bottom: 8px;">
+            <span id="benchStatusLabel" style="font-weight: 600; color: var(--accent-apple-blue); display: flex; align-items: center; gap: 8px;">
+              <span class="pulse-dot"></span> Đang chuẩn bị kiểm định Direct I/O...
+            </span>
+            <span id="benchPercentLabel" style="font-family: var(--font-family-mono); font-weight: 700; color: var(--text-primary);">0%</span>
+          </div>
+          <div class="progress-bar-track" style="height: 7px;">
+            <div id="benchProgressBar" class="progress-bar-fill fill-good" style="width: 0%;"></div>
+          </div>
         </div>
 
         <!-- Benchmark Numbers Grid -->

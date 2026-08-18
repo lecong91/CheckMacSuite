@@ -735,18 +735,18 @@ class MacHardwareScanner:
             batt["tamperingVerdict"] = "✅ PIN ZIN NGUYÊN BẢN (XUẤT XƯỞNG): Toàn bộ thông số đồng nhất hoàn hảo từ nhà máy Apple"
 
     @classmethod
-    def run_live_disk_benchmark(cls, size_mb=256):
+    def run_live_disk_benchmark(cls, size_mb=1024):
         """
         Runs a comprehensive Apple AST2 / Blackmagic certified live SSD throughput & IOPS benchmark.
         Bypasses macOS Unified Memory RAM/VFS cache via Darwin fcntl(F_NOCACHE) to measure
-        true physical NAND flash read/write performance, 4K Random IOPS, and real latency.
+        true physical NAND flash sustained performance, 4K Random IOPS (5,000 ops), and real latency.
         """
         test_dir = os.path.join(BASE_DIR, "scratch")
         os.makedirs(test_dir, exist_ok=True)
         test_file = os.path.join(test_dir, "bench_test.tmp")
 
-        # Clamp size between 64MB and 1024MB
-        size_mb = max(64, min(1024, size_mb))
+        # Clamp size between 256MB and 4096MB (Default: 1024MB / 1GB)
+        size_mb = max(256, min(4096, int(size_mb or 1024)))
         chunk_size = 1024 * 1024  # 1MB per chunk
         data_1mb = os.urandom(chunk_size)
         data_4k = os.urandom(4096)
@@ -756,7 +756,7 @@ class MacHardwareScanner:
 
         try:
             # -------------------------------------------------------------
-            # PHASE 1: SEQUENTIAL WRITE BENCHMARK (Direct I/O F_NOCACHE)
+            # PHASE 1: SUSTAINED SEQUENTIAL WRITE BENCHMARK (Direct I/O F_NOCACHE)
             # -------------------------------------------------------------
             fd_w = os.open(test_file, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o644)
             if hasattr(fcntl, "F_NOCACHE"):
@@ -771,7 +771,7 @@ class MacHardwareScanner:
             for _ in range(size_mb):
                 os.write(fd_w, data_1mb)
                 sample_bytes += chunk_size
-                if sample_bytes >= 16 * 1024 * 1024:  # Sample every 16MB
+                if sample_bytes >= 32 * 1024 * 1024:  # Sample every 32MB
                     now = time.perf_counter()
                     dt = now - sample_t0
                     if dt > 0:
@@ -785,7 +785,7 @@ class MacHardwareScanner:
             write_speed_mb = round(size_mb / total_w_time, 2)
 
             # -------------------------------------------------------------
-            # PHASE 2: SEQUENTIAL READ BENCHMARK (Direct I/O F_NOCACHE)
+            # PHASE 2: SUSTAINED SEQUENTIAL READ BENCHMARK (Direct I/O F_NOCACHE)
             # -------------------------------------------------------------
             fd_r = os.open(test_file, os.O_RDONLY)
             if hasattr(fcntl, "F_NOCACHE"):
@@ -802,7 +802,7 @@ class MacHardwareScanner:
                 if not buf:
                     break
                 sample_bytes += len(buf)
-                if sample_bytes >= 16 * 1024 * 1024:  # Sample every 16MB
+                if sample_bytes >= 32 * 1024 * 1024:  # Sample every 32MB
                     now = time.perf_counter()
                     dt = now - sample_t0
                     if dt > 0:
@@ -815,9 +815,9 @@ class MacHardwareScanner:
             read_speed_mb = round(size_mb / total_r_time, 2)
 
             # -------------------------------------------------------------
-            # PHASE 3 & 4: RANDOM 4KB IOPS & ACCESS LATENCY (Direct I/O)
+            # PHASE 3 & 4: RANDOM 4KB IOPS & ACCESS LATENCY (5,000 Direct I/O Ops)
             # -------------------------------------------------------------
-            num_iops_ops = 2500
+            num_iops_ops = 5000
             max_offset = (size_mb * 1024 * 1024 - 4096) // 4096
             latencies = []
 
@@ -1587,7 +1587,7 @@ class CheckMacAPIHandler(http.server.SimpleHTTPRequestHandler):
             return
 
         elif path == "/api/benchmark":
-            size = int(query.get("size", [256])[0])
+            size = int(query.get("size", [1024])[0])
             result = MacHardwareScanner.run_live_disk_benchmark(size)
             self.send_json_response(result)
             return
@@ -1617,7 +1617,7 @@ class CheckMacAPIHandler(http.server.SimpleHTTPRequestHandler):
         path = parsed_url.path
 
         if path == "/api/benchmark":
-            result = MacHardwareScanner.run_live_disk_benchmark(256)
+            result = MacHardwareScanner.run_live_disk_benchmark(1024)
             self.send_json_response(result)
             return
 
