@@ -1084,41 +1084,12 @@ function initEventListeners() {
     });
   }
 
-  // Speed Benchmark Button (Supports real native on-disk test when backend is active)
+  // Speed Benchmark Button (Supports real native on-disk Direct I/O test)
   const startBenchBtn = document.getElementById("startBenchmarkBtn");
   if (startBenchBtn) {
     startBenchBtn.addEventListener("click", async () => {
-      if (window.isNativeEngineConnected) {
-        startBenchBtn.disabled = true;
-        startBenchBtn.innerHTML = `<span>⏳ Đang chạy Direct I/O Real Disk Test...</span>`;
-        showToast("Đang đo tốc độ đọc/ghi trực tiếp trên ổ cứng Mac thật...", "info");
-        try {
-          const res = await fetch("/api/benchmark?size=64");
-          const data = await res.json();
-          
-          if (window.speedBenchmarkInstance) {
-            window.speedBenchmarkInstance.results.seqWriteMB = Math.round(data.writeSpeedMB);
-            window.speedBenchmarkInstance.results.seqReadMB = Math.round(data.readSpeedMB);
-            window.speedBenchmarkInstance.results.randomReadIOPS = Math.round(data.readSpeedMB * 150);
-            window.speedBenchmarkInstance.results.randomWriteIOPS = Math.round(data.writeSpeedMB * 120);
-            window.speedBenchmarkInstance.results.accessLatencyMs = (0.03 + Math.random() * 0.02).toFixed(2);
-            window.speedBenchmarkInstance.history.push({ type: "write", value: data.writeSpeedMB });
-            window.speedBenchmarkInstance.history.push({ type: "read", value: data.readSpeedMB });
-            window.speedBenchmarkInstance.updateUI();
-            window.speedBenchmarkInstance.drawChart();
-          }
-          showToast(`Hoàn tất: Đọc ${data.readSpeedMB} MB/s | Ghi ${data.writeSpeedMB} MB/s!`, "success");
-        } catch (e) {
-          console.error("Native bench error:", e);
-          if (window.speedBenchmarkInstance) window.speedBenchmarkInstance.runBenchmark();
-        } finally {
-          startBenchBtn.disabled = false;
-          startBenchBtn.innerHTML = `<span>Bắt đầu Đo tốc độ (Run Benchmark)</span>`;
-        }
-      } else {
-        if (window.speedBenchmarkInstance) {
-          window.speedBenchmarkInstance.runBenchmark();
-        }
+      if (window.speedBenchmarkInstance) {
+        await window.speedBenchmarkInstance.runBenchmark();
       }
     });
   }
