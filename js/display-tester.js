@@ -38,8 +38,9 @@ class DisplayTester {
 
     setT("dispPanelName", main.name || "Liquid Retina Display");
     setT("dispPanelType", main.panelType || "Liquid Retina Display (IPS LED)");
-    setT("dispResolution", main.resolution || "2560 x 1664");
-    setT("dispNativePixels", main.nativePixels || "2560 x 1664");
+    setT("dispResolution", main.resolution || "2560 x 1664 @ 60Hz");
+    setT("dispNativePixels", main.nativePixels || "2560 x 1664 (224 PPI)");
+    setT("dispHidpiBuffer", main.hidpiBuffer || "Chuẩn 1:1 Pixel Direct Mapping");
     setT("dispRefreshRate", main.refreshRate || "60Hz");
     setT("dispColorGamut", main.colorGamut || "Wide Color (P3-D65), 10-bit");
     setT("dispMaxBrightness", main.maxBrightness || "500 nits");

@@ -111,6 +111,74 @@ APPLE_BATTERY_SPECS_DB = {
     "Mac16,7": {"design_mah": 8700, "year": 2024, "name": "MacBook Pro 16\" (M4 Max, 2024)"}
 }
 
+# ==============================================================================
+# OFFICIAL APPLE BUILT-IN RETINA & XDR DISPLAY SPECIFICATIONS DATABASE
+# Maps Apple Model Identifiers to Physical Native Panel Matrix (Pixels), PPI & Nits
+# ==============================================================================
+APPLE_BUILTIN_DISPLAY_SPECS = {
+    # MacBook Air 13.6" Liquid Retina (M2, M3, M4)
+    "Mac14,2": {"native": "2560 x 1664", "ppi": 224, "panel": "Liquid Retina Display (IPS LED, True Tone)", "nits": "500 nits", "refresh": "60Hz", "xdr": False},
+    "Mac15,2": {"native": "2560 x 1664", "ppi": 224, "panel": "Liquid Retina Display (IPS LED, True Tone)", "nits": "500 nits", "refresh": "60Hz", "xdr": False},
+    "Mac15,12": {"native": "2560 x 1664", "ppi": 224, "panel": "Liquid Retina Display (IPS LED, True Tone)", "nits": "500 nits", "refresh": "60Hz", "xdr": False},
+    "Mac16,2": {"native": "2560 x 1664", "ppi": 224, "panel": "Liquid Retina Display (IPS LED, True Tone)", "nits": "500 nits", "refresh": "60Hz", "xdr": False},
+
+    # MacBook Air 15.3" Liquid Retina (M2, M3)
+    "Mac14,15": {"native": "2880 x 1864", "ppi": 224, "panel": "Liquid Retina Display (IPS LED, True Tone)", "nits": "500 nits", "refresh": "60Hz", "xdr": False},
+    "Mac15,13": {"native": "2880 x 1864", "ppi": 224, "panel": "Liquid Retina Display (IPS LED, True Tone)", "nits": "500 nits", "refresh": "60Hz", "xdr": False},
+
+    # MacBook Pro 14.2" Liquid Retina XDR (M1, M2, M3, M4 Pro/Max)
+    "MacBookPro18,3": {"native": "3024 x 1964", "ppi": 254, "panel": "Liquid Retina XDR (Mini-LED, 10,000 Local Dimming Zones)", "nits": "1600 nits Peak / 1000 nits Sustained", "refresh": "120Hz ProMotion", "xdr": True},
+    "MacBookPro18,4": {"native": "3024 x 1964", "ppi": 254, "panel": "Liquid Retina XDR (Mini-LED, 10,000 Local Dimming Zones)", "nits": "1600 nits Peak / 1000 nits Sustained", "refresh": "120Hz ProMotion", "xdr": True},
+    "Mac14,5": {"native": "3024 x 1964", "ppi": 254, "panel": "Liquid Retina XDR (Mini-LED, 10,000 Local Dimming Zones)", "nits": "1600 nits Peak / 1000 nits Sustained", "refresh": "120Hz ProMotion", "xdr": True},
+    "Mac14,9": {"native": "3024 x 1964", "ppi": 254, "panel": "Liquid Retina XDR (Mini-LED, 10,000 Local Dimming Zones)", "nits": "1600 nits Peak / 1000 nits Sustained", "refresh": "120Hz ProMotion", "xdr": True},
+    "Mac15,3": {"native": "3024 x 1964", "ppi": 254, "panel": "Liquid Retina XDR (Mini-LED, 10,000 Local Dimming Zones)", "nits": "1600 nits Peak / 1000 nits Sustained", "refresh": "120Hz ProMotion", "xdr": True},
+    "Mac15,4": {"native": "3024 x 1964", "ppi": 254, "panel": "Liquid Retina XDR (Mini-LED, 10,000 Local Dimming Zones)", "nits": "1600 nits Peak / 1000 nits Sustained", "refresh": "120Hz ProMotion", "xdr": True},
+    "Mac15,6": {"native": "3024 x 1964", "ppi": 254, "panel": "Liquid Retina XDR (Mini-LED, 10,000 Local Dimming Zones)", "nits": "1600 nits Peak / 1000 nits Sustained", "refresh": "120Hz ProMotion", "xdr": True},
+    "Mac15,8": {"native": "3024 x 1964", "ppi": 254, "panel": "Liquid Retina XDR (Mini-LED, 10,000 Local Dimming Zones)", "nits": "1600 nits Peak / 1000 nits Sustained", "refresh": "120Hz ProMotion", "xdr": True},
+    "Mac15,10": {"native": "3024 x 1964", "ppi": 254, "panel": "Liquid Retina XDR (Mini-LED, 10,000 Local Dimming Zones)", "nits": "1600 nits Peak / 1000 nits Sustained", "refresh": "120Hz ProMotion", "xdr": True},
+    "Mac16,1": {"native": "3024 x 1964", "ppi": 254, "panel": "Liquid Retina XDR (Mini-LED, 10,000 Local Dimming Zones)", "nits": "1600 nits Peak / 1000 nits Sustained", "refresh": "120Hz ProMotion", "xdr": True},
+    "Mac16,6": {"native": "3024 x 1964", "ppi": 254, "panel": "Liquid Retina XDR (Mini-LED, 10,000 Local Dimming Zones)", "nits": "1600 nits Peak / 1000 nits Sustained", "refresh": "120Hz ProMotion", "xdr": True},
+    "Mac16,8": {"native": "3024 x 1964", "ppi": 254, "panel": "Liquid Retina XDR (Mini-LED, 10,000 Local Dimming Zones)", "nits": "1600 nits Peak / 1000 nits Sustained", "refresh": "120Hz ProMotion", "xdr": True},
+
+    # MacBook Pro 16.2" Liquid Retina XDR (M1, M2, M3, M4 Pro/Max)
+    "MacBookPro18,1": {"native": "3456 x 2234", "ppi": 254, "panel": "Liquid Retina XDR (Mini-LED, 10,000 Local Dimming Zones)", "nits": "1600 nits Peak / 1000 nits Sustained", "refresh": "120Hz ProMotion", "xdr": True},
+    "MacBookPro18,2": {"native": "3456 x 2234", "ppi": 254, "panel": "Liquid Retina XDR (Mini-LED, 10,000 Local Dimming Zones)", "nits": "1600 nits Peak / 1000 nits Sustained", "refresh": "120Hz ProMotion", "xdr": True},
+    "Mac14,6": {"native": "3456 x 2234", "ppi": 254, "panel": "Liquid Retina XDR (Mini-LED, 10,000 Local Dimming Zones)", "nits": "1600 nits Peak / 1000 nits Sustained", "refresh": "120Hz ProMotion", "xdr": True},
+    "Mac14,10": {"native": "3456 x 2234", "ppi": 254, "panel": "Liquid Retina XDR (Mini-LED, 10,000 Local Dimming Zones)", "nits": "1600 nits Peak / 1000 nits Sustained", "refresh": "120Hz ProMotion", "xdr": True},
+    "Mac15,7": {"native": "3456 x 2234", "ppi": 254, "panel": "Liquid Retina XDR (Mini-LED, 10,000 Local Dimming Zones)", "nits": "1600 nits Peak / 1000 nits Sustained", "refresh": "120Hz ProMotion", "xdr": True},
+    "Mac15,9": {"native": "3456 x 2234", "ppi": 254, "panel": "Liquid Retina XDR (Mini-LED, 10,000 Local Dimming Zones)", "nits": "1600 nits Peak / 1000 nits Sustained", "refresh": "120Hz ProMotion", "xdr": True},
+    "Mac15,11": {"native": "3456 x 2234", "ppi": 254, "panel": "Liquid Retina XDR (Mini-LED, 10,000 Local Dimming Zones)", "nits": "1600 nits Peak / 1000 nits Sustained", "refresh": "120Hz ProMotion", "xdr": True},
+    "Mac16,5": {"native": "3456 x 2234", "ppi": 254, "panel": "Liquid Retina XDR (Mini-LED, 10,000 Local Dimming Zones)", "nits": "1600 nits Peak / 1000 nits Sustained", "refresh": "120Hz ProMotion", "xdr": True},
+    "Mac16,7": {"native": "3456 x 2234", "ppi": 254, "panel": "Liquid Retina XDR (Mini-LED, 10,000 Local Dimming Zones)", "nits": "1600 nits Peak / 1000 nits Sustained", "refresh": "120Hz ProMotion", "xdr": True},
+
+    # MacBook Pro 13.3" & MacBook Air 13.3" Retina (M1, M2, Intel)
+    "MacBookAir10,1": {"native": "2560 x 1600", "ppi": 227, "panel": "Retina Display (IPS LED, True Tone)", "nits": "400 nits", "refresh": "60Hz", "xdr": False},
+    "MacBookAir8,1": {"native": "2560 x 1600", "ppi": 227, "panel": "Retina Display (IPS LED, True Tone)", "nits": "300 nits", "refresh": "60Hz", "xdr": False},
+    "MacBookAir8,2": {"native": "2560 x 1600", "ppi": 227, "panel": "Retina Display (IPS LED, True Tone)", "nits": "400 nits", "refresh": "60Hz", "xdr": False},
+    "MacBookAir9,1": {"native": "2560 x 1600", "ppi": 227, "panel": "Retina Display (IPS LED, True Tone)", "nits": "400 nits", "refresh": "60Hz", "xdr": False},
+    "MacBookPro17,1": {"native": "2560 x 1600", "ppi": 227, "panel": "Retina Display (IPS LED, True Tone)", "nits": "500 nits", "refresh": "60Hz", "xdr": False},
+    "Mac14,7": {"native": "2560 x 1600", "ppi": 227, "panel": "Retina Display (IPS LED, True Tone)", "nits": "500 nits", "refresh": "60Hz", "xdr": False},
+    "MacBookPro13,1": {"native": "2560 x 1600", "ppi": 227, "panel": "Retina Display (IPS LED)", "nits": "500 nits", "refresh": "60Hz", "xdr": False},
+    "MacBookPro13,2": {"native": "2560 x 1600", "ppi": 227, "panel": "Retina Display (IPS LED)", "nits": "500 nits", "refresh": "60Hz", "xdr": False},
+    "MacBookPro14,1": {"native": "2560 x 1600", "ppi": 227, "panel": "Retina Display (IPS LED)", "nits": "500 nits", "refresh": "60Hz", "xdr": False},
+    "MacBookPro14,2": {"native": "2560 x 1600", "ppi": 227, "panel": "Retina Display (IPS LED)", "nits": "500 nits", "refresh": "60Hz", "xdr": False},
+    "MacBookPro15,2": {"native": "2560 x 1600", "ppi": 227, "panel": "Retina Display (IPS LED, True Tone)", "nits": "500 nits", "refresh": "60Hz", "xdr": False},
+    "MacBookPro15,4": {"native": "2560 x 1600", "ppi": 227, "panel": "Retina Display (IPS LED, True Tone)", "nits": "500 nits", "refresh": "60Hz", "xdr": False},
+    "MacBookPro16,2": {"native": "2560 x 1600", "ppi": 227, "panel": "Retina Display (IPS LED, True Tone)", "nits": "500 nits", "refresh": "60Hz", "xdr": False},
+    "MacBookPro16,3": {"native": "2560 x 1600", "ppi": 227, "panel": "Retina Display (IPS LED, True Tone)", "nits": "500 nits", "refresh": "60Hz", "xdr": False},
+
+    # MacBook Pro 15.4" & 16.0" Retina (Intel)
+    "MacBookPro15,1": {"native": "2880 x 1800", "ppi": 220, "panel": "Retina Display (IPS LED, True Tone)", "nits": "500 nits", "refresh": "60Hz", "xdr": False},
+    "MacBookPro15,3": {"native": "2880 x 1800", "ppi": 220, "panel": "Retina Display (IPS LED, True Tone)", "nits": "500 nits", "refresh": "60Hz", "xdr": False},
+    "MacBookPro16,1": {"native": "3072 x 1920", "ppi": 226, "panel": "Retina Display (IPS LED, True Tone)", "nits": "500 nits", "refresh": "60Hz", "xdr": False},
+    "MacBookPro16,4": {"native": "3072 x 1920", "ppi": 226, "panel": "Retina Display (IPS LED, True Tone)", "nits": "500 nits", "refresh": "60Hz", "xdr": False},
+
+    # MacBook 12" Retina
+    "MacBook8,1": {"native": "2304 x 1440", "ppi": 226, "panel": "Retina Display (IPS LED)", "nits": "300 nits", "refresh": "60Hz", "xdr": False},
+    "MacBook9,1": {"native": "2304 x 1440", "ppi": 226, "panel": "Retina Display (IPS LED)", "nits": "300 nits", "refresh": "60Hz", "xdr": False},
+    "MacBook10,1": {"native": "2304 x 1440", "ppi": 226, "panel": "Retina Display (IPS LED)", "nits": "300 nits", "refresh": "60Hz", "xdr": False},
+}
+
 # In-memory hardware snapshot cache to prevent localhost CPU resource spikes on old Macs
 _CACHE = {}
 CACHE_TTL = 15.0 # 15 seconds TTL
@@ -1249,6 +1317,70 @@ class MacHardwareScanner:
         if "display" in _CACHE and (now - _CACHE["display"]["ts"] < CACHE_TTL):
             return _CACHE["display"]["data"]
 
+        # 1. Query CoreGraphics Quartz via ctypes for exact physical hardware raster dimensions
+        cg_displays = {}
+        try:
+            import ctypes
+            from ctypes import c_uint32, c_void_p, c_size_t, c_double, POINTER, byref
+            Quartz = ctypes.cdll.LoadLibrary('/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics')
+            Quartz.CGGetOnlineDisplayList.restype = c_uint32
+            Quartz.CGGetOnlineDisplayList.argtypes = [c_uint32, POINTER(c_uint32), POINTER(c_uint32)]
+            Quartz.CGDisplayPixelsWide.restype = c_size_t
+            Quartz.CGDisplayPixelsWide.argtypes = [c_uint32]
+            Quartz.CGDisplayPixelsHigh.restype = c_size_t
+            Quartz.CGDisplayPixelsHigh.argtypes = [c_uint32]
+            Quartz.CGDisplayIsBuiltin.restype = c_uint32
+            Quartz.CGDisplayIsBuiltin.argtypes = [c_uint32]
+            Quartz.CGDisplayIsMain.restype = c_uint32
+            Quartz.CGDisplayIsMain.argtypes = [c_uint32]
+            Quartz.CGDisplayCopyDisplayMode.restype = c_void_p
+            Quartz.CGDisplayCopyDisplayMode.argtypes = [c_uint32]
+            Quartz.CGDisplayModeGetWidth.restype = c_size_t
+            Quartz.CGDisplayModeGetWidth.argtypes = [c_void_p]
+            Quartz.CGDisplayModeGetHeight.restype = c_size_t
+            Quartz.CGDisplayModeGetHeight.argtypes = [c_void_p]
+            Quartz.CGDisplayModeGetPixelWidth.restype = c_size_t
+            Quartz.CGDisplayModeGetPixelWidth.argtypes = [c_void_p]
+            Quartz.CGDisplayModeGetPixelHeight.restype = c_size_t
+            Quartz.CGDisplayModeGetPixelHeight.argtypes = [c_void_p]
+            Quartz.CGDisplayModeGetRefreshRate.restype = c_double
+            Quartz.CGDisplayModeGetRefreshRate.argtypes = [c_void_p]
+
+            max_d = 16
+            arr = (c_uint32 * max_d)()
+            cnt = c_uint32()
+            Quartz.CGGetOnlineDisplayList(max_d, arr, byref(cnt))
+            
+            for i in range(cnt.value):
+                d_id = arr[i]
+                pw = Quartz.CGDisplayPixelsWide(d_id)
+                ph = Quartz.CGDisplayPixelsHigh(d_id)
+                is_m = bool(Quartz.CGDisplayIsMain(d_id))
+                is_b = bool(Quartz.CGDisplayIsBuiltin(d_id))
+                mode = Quartz.CGDisplayCopyDisplayMode(d_id)
+                ui_w = Quartz.CGDisplayModeGetWidth(mode)
+                ui_h = Quartz.CGDisplayModeGetHeight(mode)
+                fb_w = Quartz.CGDisplayModeGetPixelWidth(mode)
+                fb_h = Quartz.CGDisplayModeGetPixelHeight(mode)
+                ref = Quartz.CGDisplayModeGetRefreshRate(mode)
+                
+                cg_displays[str(d_id)] = {
+                    'id': d_id,
+                    'pw': pw,
+                    'ph': ph,
+                    'isMain': is_m,
+                    'isBuiltIn': is_b,
+                    'uiResolution': f'{ui_w} x {ui_h} @ {ref:.2f}Hz' if ref > 0 else f'{ui_w} x {ui_h} @ 60.00Hz',
+                    'fb_w': fb_w,
+                    'fb_h': fb_h,
+                    'refreshRate': f'{ref:.0f}Hz' if ref > 0 else '60Hz'
+                }
+        except Exception as e:
+            print(f"[!] Warning querying CoreGraphics display list: {e}", file=sys.stderr)
+
+        sys_info = cls.get_system_hardware_info()
+        model_ident = sys_info.get("modelIdentifier", "Mac")
+
         displays = []
         try:
             res = subprocess.run(["system_profiler", "SPDisplaysDataType", "-json"], capture_output=True, text=True, timeout=5)
@@ -1257,31 +1389,81 @@ class MacHardwareScanner:
                 gpu_list = data.get("SPDisplaysDataType", [])
                 for gpu in gpu_list:
                     ndrvs = gpu.get("spdisplays_ndrvs", [])
-                    for d in ndrvs:
+                    for idx, d in enumerate(ndrvs):
+                        d_id_str = str(d.get("_spdisplays_displayID", str(idx + 1)))
                         d_name = d.get("_name", "Display")
                         d_res = d.get("_spdisplays_resolution", d.get("spdisplays_resolution", "N/A"))
-                        d_pixels = d.get("_spdisplays_pixels", "N/A")
                         d_serial = d.get("_spdisplays_display-serial-number", "Apple Color LCD")
                         is_main = d.get("spdisplays_main") == "spdisplays_yes"
                         is_builtin = "builtin" in str(d.get("spdisplays_display_type", "")).lower() or "color lcd" in d_name.lower() or "retina" in d_name.lower()
+
+                        # Match with CoreGraphics hardware
+                        cg_info = cg_displays.get(d_id_str, None)
+                        if not cg_info and len(cg_displays) == 1:
+                            cg_info = list(cg_displays.values())[0]
+
+                        if cg_info:
+                            pw = cg_info['pw']
+                            ph = cg_info['ph']
+                            fb_w = cg_info['fb_w']
+                            fb_h = cg_info['fb_h']
+                            ui_res = cg_info['uiResolution']
+                            ref_rate = cg_info['refreshRate']
+                            if is_main is False and cg_info['isMain']: is_main = True
+                            if is_builtin is False and cg_info['isBuiltIn']: is_builtin = True
+                        else:
+                            pw, ph = 2560, 1440
+                            fb_w, fb_h = 2560, 1440
+                            ui_res = d_res
+                            ref_rate = '60Hz'
+
+                        # Physical Native Resolution Calculation & Apple Database Check
+                        panel_type = "External Monitor (Display P3 / sRGB)"
+                        max_brightness = "350-400 nits"
+                        refresh_rate = ref_rate
                         
-                        if "xdr" in d_name.lower() or "liquid retina xdr" in str(d).lower():
+                        if is_builtin and model_ident in APPLE_BUILTIN_DISPLAY_SPECS:
+                            spec = APPLE_BUILTIN_DISPLAY_SPECS[model_ident]
+                            native_str = f"{spec['native']} ({spec['ppi']} PPI)"
+                            panel_type = spec["panel"]
+                            max_brightness = spec["nits"]
+                            refresh_rate = spec["refresh"]
+                        elif "xdr" in d_name.lower() or "liquid retina xdr" in str(d).lower():
+                            native_str = f"{pw} x {ph} (Liquid Retina XDR)"
                             panel_type = "Liquid Retina XDR (Mini-LED, 1600 nits Peak)"
                             max_brightness = "1600 nits Peak / 1000 nits Sustained"
                             refresh_rate = "120Hz ProMotion"
                         elif "liquid retina" in d_name.lower() or "retina" in d_name.lower():
+                            native_str = f"{pw} x {ph} (Liquid Retina)"
                             panel_type = "Liquid Retina Display (IPS LED, True Tone)"
                             max_brightness = "500 nits"
                             refresh_rate = "60Hz"
                         else:
-                            panel_type = "External Monitor (Display P3 / sRGB)"
-                            max_brightness = "350-400 nits"
-                            refresh_rate = "60Hz"
+                            # External Monitor physical native resolution
+                            if pw == 2560 and ph == 1440:
+                                native_str = "2560 x 1440 (2K QHD)"
+                            elif pw == 1920 and ph == 1080:
+                                native_str = "1920 x 1080 (1080p FHD)"
+                            elif pw == 3840 and ph == 2160:
+                                native_str = "3840 x 2160 (4K UHD)"
+                            elif pw == 5120 and ph == 2880:
+                                native_str = "5120 x 2880 (5K Retina)"
+                            elif pw == 6016 and ph == 3384:
+                                native_str = "6016 x 3384 (6K Pro Display XDR)"
+                            else:
+                                native_str = f"{pw} x {ph}"
+
+                        # HiDPI Super-Sampling Framebuffer
+                        if fb_w > pw or fb_h > ph:
+                            hidpi_str = f"{fb_w} x {fb_h} (2x HiDPI Super-Sampling Framebuffer)"
+                        else:
+                            hidpi_str = f"{pw} x {ph} (Chuẩn 1:1 Pixel Direct Mapping)"
 
                         displays.append({
                             "name": d_name,
-                            "resolution": d_res,
-                            "nativePixels": d_pixels if d_pixels != "N/A" else d_res.split("@")[0].strip(),
+                            "resolution": ui_res if ui_res != "N/A" else d_res,
+                            "nativePixels": native_str,
+                            "hidpiBuffer": hidpi_str,
                             "displaySerial": d_serial,
                             "isMain": is_main,
                             "isBuiltIn": is_builtin,
@@ -1298,7 +1480,8 @@ class MacHardwareScanner:
         main_display = next((d for d in displays if d.get("isMain")), (displays[0] if displays else {
             "name": "Built-in Liquid Retina Display",
             "resolution": "2560 x 1664 @ 60.00Hz",
-            "nativePixels": "2560 x 1664",
+            "nativePixels": "2560 x 1664 (224 PPI)",
+            "hidpiBuffer": "2560 x 1664 (Chuẩn 1:1 Pixel Direct Mapping)",
             "displaySerial": "Apple Color LCD",
             "isMain": True,
             "isBuiltIn": True,
