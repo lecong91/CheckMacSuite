@@ -73,21 +73,23 @@ class SpeedBenchmark {
 
     try {
       const sizeSelect = document.getElementById("benchmarkSizeSelect");
+      const passesSelect = document.getElementById("benchmarkPassesSelect");
       const selectedSize = sizeSelect ? parseInt(sizeSelect.value, 10) || 1024 : 1024;
+      const selectedPasses = passesSelect ? parseInt(passesSelect.value, 10) || 1 : 1;
 
       if (window.isNativeEngineConnected) {
         // Run Real Hardware Direct I/O Benchmark on Mac Storage
-        await this.runNativeDirectIOBenchmark(selectedSize, setProgress);
+        await this.runNativeDirectIOBenchmark(selectedSize, selectedPasses, setProgress);
       } else {
         // Standalone Client-Side Fallback Benchmark
-        await this.runStandaloneBenchmark(selectedSize, setProgress);
+        await this.runStandaloneBenchmark(selectedSize, selectedPasses, setProgress);
       }
 
       setProgress(100, `Hoàn tất kiểm định: Đọc ${this.results.seqReadMB.toLocaleString()} MB/s | Ghi ${this.results.seqWriteMB.toLocaleString()} MB/s (100% Direct I/O)`);
 
       if (window.showToast) {
         window.showToast(
-          `Hoàn tất kiểm định SSD (${selectedSize}MB): Đọc ${this.results.seqReadMB.toLocaleString()} MB/s | Ghi ${this.results.seqWriteMB.toLocaleString()} MB/s!`,
+          `Hoàn tất kiểm định SSD (${selectedSize}MB x ${selectedPasses} lượt): Đọc ${this.results.seqReadMB.toLocaleString()} MB/s | Ghi ${this.results.seqWriteMB.toLocaleString()} MB/s!`,
           "success"
         );
       }
@@ -108,13 +110,14 @@ class SpeedBenchmark {
     }
   }
 
-  async runNativeDirectIOBenchmark(selectedSize, setProgress) {
-    setProgress(5, `[Pha 1/4] Đang khởi tạo khối dữ liệu ${selectedSize}MB Direct I/O (Bypass Cache)...`);
+  async runNativeDirectIOBenchmark(selectedSize, selectedPasses, setProgress) {
+    const totalMB = selectedSize * selectedPasses;
+    setProgress(5, `[Pha 1/4] Đang khởi tạo khối dữ liệu ${totalMB}MB Direct I/O (${selectedPasses} lượt)...`);
     await new Promise(r => setTimeout(r, 150));
 
-    setProgress(15, `[Pha 1/4] Đang ghi tuần tự ${selectedSize}MB trực tiếp vào chip NAND Flash...`);
+    setProgress(15, `[Pha 1/4] Đang ghi tuần tự ${totalMB}MB trực tiếp vào chip NAND Flash...`);
 
-    const res = await fetch(`/api/benchmark?size=${selectedSize}`);
+    const res = await fetch(`/api/benchmark?size=${selectedSize}&passes=${selectedPasses}`);
     if (!res.ok) throw new Error("HTTP " + res.status);
     const data = await res.json();
 
@@ -128,10 +131,10 @@ class SpeedBenchmark {
       this.updateUI();
       this.drawChart();
       setProgress(Math.min(45, Math.round(15 + (i + 1) * writeStep)), `[Pha 1/4] Ghi tuần tự: ${Math.round(val).toLocaleString()} MB/s (Block ${i + 1}/${writeSamples.length})`);
-      await new Promise(r => setTimeout(r, 45));
+      await new Promise(r => setTimeout(r, 40));
     }
 
-    setProgress(50, `[Pha 2/4] Đang đọc tuần tự ${selectedSize}MB trích xuất vật lý từ NAND...`);
+    setProgress(50, `[Pha 2/4] Đang đọc tuần tự ${totalMB}MB trích xuất vật lý từ NAND...`);
 
     // Stream Read Samples
     const readSamples = data.readSamples && data.readSamples.length > 0 ? data.readSamples : [data.readSpeedMB];
@@ -143,11 +146,11 @@ class SpeedBenchmark {
       this.updateUI();
       this.drawChart();
       setProgress(Math.min(80, Math.round(50 + (i + 1) * readStep)), `[Pha 2/4] Đọc tuần tự: ${Math.round(val).toLocaleString()} MB/s (Block ${i + 1}/${readSamples.length})`);
-      await new Promise(r => setTimeout(r, 45));
+      await new Promise(r => setTimeout(r, 40));
     }
 
     setProgress(85, `[Pha 3/4] Đang đo 5,000 lệnh Random 4K IOPS (Read/Write)...`);
-    await new Promise(r => setTimeout(r, 200));
+    await new Promise(r => setTimeout(r, 150));
 
     // Set final real metrics from physical NVMe measurement
     this.results.seqWriteMB = Math.round(data.writeSpeedMB);
@@ -156,19 +159,43 @@ class SpeedBenchmark {
     this.results.randomWriteIOPS = data.randomWriteIOPS || Math.round(data.writeSpeedMB * 2.8);
     this.results.accessLatencyMs = Number(data.avgLatencyMs || 0.05).toFixed(2);
 
-    setProgress(95, `[Pha 4/4] Đo độ trễ Access Latency: ${this.results.accessLatencyMs} ms & Đối chiếu Video...`);
+    // Update Hardware Telemetry Strip
+    const telBytes = document.getElementById("benchTelBytes");
+    const telW = document.getElementById("benchTelWriteTime");
+    const telR = document.getElementById("benchTelReadTime");
+    if (telBytes) telBytes.textContent = `${totalMB * 2} MB (${(totalMB * 2 / 1024).toFixed(2)} GB - ${selectedPasses} lượt)`;
+    if (telW) telW.textContent = `${data.writeTimeSec}s (${data.writeSpeedMB} MB/s)`;
+    if (telR) telR.textContent = `${data.readTimeSec}s (${data.readSpeedMB} MB/s)`;
+
+    // Update Video Badges
+    if (data.videoFormats) {
+      const setBadge = (id, ok) => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.className = ok ? "badge badge-good" : "badge badge-warning";
+          el.textContent = ok ? "✅ Đạt chuẩn" : "⚠️ Không khả dụng";
+        }
+      };
+      setBadge("videoFmtProRes422", data.videoFormats.prores_422_hq_4k60?.supported);
+      setBadge("videoFmtProRes4444", data.videoFormats.prores_4444_xq_4k60?.supported);
+      setBadge("videoFmtProRes8k", data.videoFormats.prores_8k60?.supported);
+      setBadge("videoFmtProResRaw8k", data.videoFormats.prores_raw_8k60?.supported);
+      setBadge("videoFmtBmdRaw12k", data.videoFormats.bmd_raw_12k_dci60?.supported);
+    }
+
+    setProgress(95, `[Pha 4/4] Độ trễ: ${this.results.accessLatencyMs} ms (Min ${data.minLatencyMs}ms - Max ${data.maxLatencyMs}ms)...`);
     this.updateUI();
     this.drawChart();
-    await new Promise(r => setTimeout(r, 200));
+    await new Promise(r => setTimeout(r, 150));
   }
 
-  async runStandaloneBenchmark(selectedSize, setProgress) {
+  async runStandaloneBenchmark(selectedSize, selectedPasses, setProgress) {
     const chunkSize = 1024 * 1024 * 16; // 16MB buffer
     const iterations = 15;
     const targetDrive = window.currentActiveDrive || {};
     const baseSpeed = targetDrive.healthScore < 50 ? 850 : 2800;
 
-    setProgress(10, `[Standalone] Đang mô phỏng ghi tuần tự ${selectedSize}MB...`);
+    setProgress(10, `[Standalone] Đang mô phỏng ghi tuần tự ${selectedSize}MB x ${selectedPasses} lượt...`);
     // 1. Write simulation
     for (let i = 0; i < iterations; i++) {
       const buffer = new Uint8Array(chunkSize);

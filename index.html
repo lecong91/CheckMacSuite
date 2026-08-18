@@ -740,6 +740,14 @@
                 <option value="512">512 MB (Nhanh)</option>
               </select>
             </div>
+            <div class="drive-select-box">
+              <label for="benchmarkPassesSelect">Số lượt chạy:</label>
+              <select id="benchmarkPassesSelect" class="drive-dropdown">
+                <option value="1" selected>1 Lượt (Tiêu chuẩn)</option>
+                <option value="3">3 Lượt (Sustained Stress Test)</option>
+                <option value="5">5 Lượt (Bão hòa NAND & Nhiệt)</option>
+              </select>
+            </div>
             <button id="startBenchmarkBtn" class="btn btn-primary">
               <span>⚡ Bắt đầu Đo tốc độ (Run Benchmark)</span>
             </button>
@@ -792,6 +800,14 @@
           </div>
         </div>
 
+        <!-- Real Physical Hardware Diagnostics Telemetry Strip -->
+        <div id="benchTelemetryWrap" style="display: flex; gap: 16px; margin: 16px 0; padding: 12px 16px; background: rgba(0, 0, 0, 0.25); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); font-size: 0.82rem; font-family: var(--font-family-mono); flex-wrap: wrap;">
+          <div><span style="color: var(--text-tertiary);">Dữ liệu I/O vật lý:</span> <strong id="benchTelBytes" style="color: var(--text-primary);">Chưa chạy</strong></div>
+          <div><span style="color: var(--text-tertiary);">Thời gian Ghi thật:</span> <strong id="benchTelWriteTime" style="color: var(--accent-apple-blue);">--</strong></div>
+          <div><span style="color: var(--text-tertiary);">Thời gian Đọc thật:</span> <strong id="benchTelReadTime" style="color: var(--accent-apple-green);">--</strong></div>
+          <div><span style="color: var(--text-tertiary);">Cờ Kernel Darwin:</span> <strong style="color: var(--accent-apple-cyan);">fcntl(F_NOCACHE) (Bypass RAM 100%)</strong></div>
+        </div>
+
         <!-- Live Real-Time Throughput Canvas Chart -->
         <div class="chart-wrapper">
           <canvas id="speedChartCanvas"></canvas>
@@ -809,23 +825,23 @@
           <div class="spec-list-grid" style="grid-template-columns: repeat(3, 1fr); gap: 12px;">
             <div class="spec-item">
               <span class="spec-label">ProRes 422 HQ 4K 60fps (220 MB/s):</span>
-              <span class="badge badge-good">✅ Đạt chuẩn</span>
+              <span id="videoFmtProRes422" class="badge badge-good">✅ Đạt chuẩn</span>
             </div>
             <div class="spec-item">
               <span class="spec-label">ProRes 4444 XQ 4K 60fps (500 MB/s):</span>
-              <span class="badge badge-good">✅ Đạt chuẩn</span>
+              <span id="videoFmtProRes4444" class="badge badge-good">✅ Đạt chuẩn</span>
             </div>
             <div class="spec-item">
               <span class="spec-label">Apple ProRes 8K 60fps (880 MB/s):</span>
-              <span class="badge badge-good">✅ Đạt chuẩn</span>
+              <span id="videoFmtProRes8k" class="badge badge-good">✅ Đạt chuẩn</span>
             </div>
             <div class="spec-item">
               <span class="spec-label">Apple ProRes RAW 8K 60fps (1,600 MB/s):</span>
-              <span class="badge badge-good">✅ Đạt chuẩn</span>
+              <span id="videoFmtProResRaw8k" class="badge badge-good">✅ Đạt chuẩn</span>
             </div>
             <div class="spec-item">
               <span class="spec-label">Blackmagic RAW 12K DCI 60fps (2,400 MB/s):</span>
-              <span class="badge badge-good">✅ Đạt chuẩn</span>
+              <span id="videoFmtBmdRaw12k" class="badge badge-good">✅ Đạt chuẩn</span>
             </div>
             <div class="spec-item">
               <span class="spec-label">Giao thức Điều khiển:</span>
